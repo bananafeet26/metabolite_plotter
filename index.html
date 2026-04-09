@@ -293,6 +293,16 @@
             this.chart.data.labels.push(new Date(concentrations[c].day));
 
         }
+        if (nmolNgDl === 'ng') {
+            this.chart.data.datasets[0].label = 'E2 (pg/mL)';
+            this.chart.data.datasets[1].label = 'DHT (ng/dL)';
+            this.chart.data.datasets[2].label = 'TT (ng/dL)';
+        } else {
+            this.chart.data.datasets[0].label = 'E2 (pmol/L)';
+            this.chart.data.datasets[1].label = 'DHT (nmol/L)';
+            this.chart.data.datasets[2].label = 'TT (nmol/L)';
+        }
+        console.log(this.chart.data.datasets[0].data);
         console.log(this.chart.data.labels);
         // Update chart data
         this.chart.update();  // Redraw the chart
