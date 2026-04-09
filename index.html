@@ -214,7 +214,7 @@
             // Scale factor: make the unscaled Bateman peak equal to cmax * dose * bioavailability
             const peakTime = Math.log(ka / ke) / (ka - ke);
             const peakVal  = Math.exp(-ke * peakTime) - Math.exp(-ka * peakTime);
-            const S = (cmax * dose * bioavailability) / peakVal;
+            const S = (cmax * dose * bioavailability) / peakVal * 0.4;
 
             // Single-dose Bateman function: concentration at time t after one injection at t=0
             function singleDose(t) {
