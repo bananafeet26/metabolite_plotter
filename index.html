@@ -81,7 +81,7 @@
             margin-top: 5px;
             margin-bottom: 5px;
             width: 100%; /* Ensures canvas stretches to fit container */
-            height: 300px; /* Optional: Set a fixed height for the canvas */
+            height: 1000px; /* Optional: Set a fixed height for the canvas */
             display: block; /* Ensure block display so it can take up the full width */
             border-radius: 6px; /* Rounded corners for the chart */
             background-color: #ffffff; /* White background for the canvas */
@@ -117,7 +117,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@^1"></script></head>
 <body>
 <!-- Canvas for Chart.js -->
-<canvas id="myChart"></canvas>
+<canvas style="height:600px" id="myChart"></canvas>
 
 
 <div class="container" x-data="{
@@ -129,10 +129,12 @@
       durationWeeks: 6,
       age: 'young',
       nmolNgDl: 'ng',
-      halflife: 7.19,
+      halflife: 7.2,
       cmax: 11.3095,
       tmax: 1.3875,
-      bioavailability: 0.72
+      bioavailability: 0.72,
+      AUC: 2588, //https://academic.oup.com/view-large/389646248
+      S: 1300
     },
     chart: null,  // Store the Chart.js instance here
     initializeChart() {
@@ -189,12 +191,11 @@
     },
     updateChart() {
         // Update chart when dose or other settings change
-        const { dose, durationWeeks, age, nmolNgDl, halflife, cmax, tmax, bioavailability, doseFrequency } = this.settings;
+        const { dose, doseFrequency, startDate, durationWeeks, age, nmolNgDl, halflife, cmax, tmax, bioavailability, AUC, S} = this.settings;
         const days = durationWeeks * 7;
-
         // Calculate testosterone concentration with hysteresis
-        function calculateTestosteroneConcentration(dose, days, doseFrequency, cmax, tmax, halflife, bioavailability, startDate) {
-            // Elimination rate constant
+        function calculateTestosteroneConcentration(dose, doseFrequency, startDate, durationWeeks, age, nmolNgDl, halflife, cmax, tmax, bioavailability, AUC, S) {
+               // Elimination rate constant
             const ke = Math.LN2 / halflife;
 
             // Solve absorption rate constant (ka) from tmax via Newton's method
@@ -214,8 +215,8 @@
             // Scale factor: make the unscaled Bateman peak equal to cmax * dose * bioavailability
             const peakTime = Math.log(ka / ke) / (ka - ke);
             const peakVal  = Math.exp(-ke * peakTime) - Math.exp(-ka * peakTime);
-            const S = (cmax * dose * bioavailability) / peakVal * 0.4;
-
+            //S = (cmax * dose * bioavailability) / peakVal *.3;
+            console.log(`s = ${S}`);
             // Single-dose Bateman function: concentration at time t after one injection at t=0
             function singleDose(t) {
                 if (t <= 0) return 0;
@@ -248,17 +249,25 @@
             }
 
             // Calculate concentrations — 6 steps per day (every 4 hours)
-            const stepsPerDay = 6;
+            const stepsPerDay = 4;
+            const extendedSteps = stepsPerDay * (halflife *5 ); // run till blood concentration is zero
+            const totalSteps = (days * stepsPerDay) + extendedSteps;
             const concentrations = [];
             let stepDate = new Date(startDate);
-
-            for (let step = 0; step <= days * stepsPerDay; step++) {
+            let totalAUC = 0; // Initialize AUC variable
+            for (let step = 0; step <= totalSteps; step++) {
                 const t = step / stepsPerDay;
                 stepDate.setTime(stepDate.getTime() + (4 * 60 * 60 * 1000)) // Add 4 hours
                 // Superposition: sum contribution from every past injection
                 let testosterone = 0;
                 for (const injTime of injections) {
                     testosterone += singleDose(t - injTime);
+                }
+                // Calculate AUC by integrating concentration over time (approximated using trapezoidal rule)
+                if (step > 0) {
+                    const prevConcentration = concentrations[step - 1].testosterone;
+                    const deltaTime = 4 / 24; // 4 hours, converted to days
+                    totalAUC += (prevConcentration + testosterone) * deltaTime / 2; // Trapezoidal rule for AUC
                 }
 
                 let estradiol = (A_e2  * testosterone) / (Km_e2  + testosterone);
@@ -273,15 +282,27 @@
                     day: new Date(stepDate.getTime()),
                     testosterone: testosterone,  // ng/dL
                     estradiol: estradiol,         // pg/mL
-                    dht: dht                      // ng/dL
+                    dht: dht,                      // ng/dL
+                    AUC: totalAUC // Running total of AUC
                 });
-                console.log(`date: ${stepDate.getTime()}, testosterone: ${testosterone}, estradiol: ${estradiol}, dht: ${dht}`);
+                console.log(`Date: ${stepDate.toISOString()}, Testosterone: ${testosterone.toFixed(2)}, Estradiol: ${estradiol.toFixed(2)}, DHT: ${dht.toFixed(2)}, AUC: ${totalAUC.toFixed(2)}`);
             }
+            let targetAUC = AUC * dose;
+            if (nmolNgDl === 'nmol') {
+                targetAUC = AUC * 0.0347 * dose;
+            }
+            let doseAdjustedAUC = totalAUC;
+            // Adjust simulated AUC by dose to compare with known AUC
+            let difference = Math.abs(doseAdjustedAUC - targetAUC);  // Calculate the difference
+            console.log(`Total AUC: ${doseAdjustedAUC.toFixed(2)} ng/dL·h/L`);
+            console.log(`Target AUC: ${targetAUC} ng/dL·h/L`);
+            console.log(`Difference: ${difference.toFixed(2)} ng/dL·h/L`);
+
             return concentrations;
         }
 
         // Calculate Total Testosterone for each day
-        const  concentrations = calculateTestosteroneConcentration(dose, days, doseFrequency, cmax, tmax, halflife, bioavailability,this.settings.startDate);
+        const  concentrations = calculateTestosteroneConcentration(dose, doseFrequency,startDate, durationWeeks, age, nmolNgDl, halflife, cmax, tmax, bioavailability, AUC, S);
         this.chart.data.datasets[0].data =[];
         this.chart.data.datasets[1].data =[];
         this.chart.data.datasets[2].data =[];
@@ -337,6 +358,13 @@
             ng/dl
         </label>
     </div>
+    <!-- S -->
+    <div class="input-field">
+        <label for="S">S:</label>
+        <input type="number" id="S" x-model.number="settings.S" min="0" step="5" placeholder="S"
+               x-on:change="updateChart()">
+    </div>
+
     <!-- Dose -->
     <div class="input-field">
         <label for="dose">Dose (mg):</label>
