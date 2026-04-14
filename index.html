@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Metabolite Plotter</title>
+    <script src="scripts/app.js" ></script>
+
     <!-- Load Alpine.js -->
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@2.8.2/dist/alpine.min.js" defer></script>
     <style>
@@ -34,6 +36,25 @@
             color: #333;
         }
 
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr; /* default: single column */
+            gap: 20px;
+        }
+
+        /* When viewport gets wider */
+        @media (min-width: 600px) {
+            .form-grid {
+                grid-template-columns: repeat(2, 1fr); /* 2 columns */
+            }
+        }
+
+        @media (min-width: 900px) {
+            .form-grid {
+                grid-template-columns: repeat(3, 1fr); /* 3 columns */
+            }
+        }
+
         /* Styling input fields */
         .input-field {
             margin-bottom: 20px;
@@ -55,6 +76,7 @@
             width: 100%;
             box-sizing: border-box;
         }
+
 
         /* Toggle group style */
         .toggle-group {
@@ -114,322 +136,130 @@
     <!-- Load Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@^3"></script>
     <script src="https://cdn.jsdelivr.net/npm/moment@^2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@^1"></script></head>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@^1"></script>
+</head>
 <body>
-<!-- Canvas for Chart.js -->
-<canvas style="height:600px" id="myChart"></canvas>
+<div class="container" x-data="metaboliteApp()" x-init="initializeChart(); updateChart();">
+    <!-- Canvas for Chart.js -->
+    <h2 align="center"><span x-text="settings.esterList[settings.esterIndex]"></span></h2>
+    <canvas style="height:600px" id="myChart"></canvas>
 
+    <h2>Adjust Settings</h2>
+    <div class="form-grid">
+        <!-- Select compound -->
+        <div class="input-field">
+            <label for="dose">Ester:</label>
+            <select x-model.number="settings.esterIndex" @change="updateChart()">
+                <template x-for="(ester, index) in settings.esterList" :key="index">
+                    <option :value="index" x-text="ester"></option>
+                </template>
+            </select>
+            <!-- Selected index: <span x-text="settings.esterIndex"></span><br>
+               Selected ester:
+               <span x-text="settings.esterList[settings.esterIndex]"></span>
+           -->
+        </div>
+        <!-- Toggle nmol/ng/dl -->
+        <div class="toggle-group">
+            <div class="input-field">
+                <label for="age">Units:</label>
+            </div>
+            <label>
+                <input type="radio" x-model="settings.age" value="young" x-on:change="updateChart()">
+                young (18-36)
+                <input type="radio" x-model="settings.age" value="old" x-on:change="updateChart()">
+                old (36+)
+            </label>
+        </div>
 
-<div class="container" x-data="{
-    settings: {
-      dose: 200,
-      doseFrequency: 7,
-      startDate: new Date(),
-      startDateField: new Date().toLocaleDateString('en-GB'),
-      durationWeeks: 6,
-      age: 'young',
-      nmolNgDl: 'ng',
-      halflife: 7.2,
-      cmax: 11.3095,
-      tmax: 1.3875,
-      bioavailability: 0.72,
-      AUC: 2588, //https://academic.oup.com/view-large/389646248
-      S: 1300
-    },
-    chart: null,  // Store the Chart.js instance here
-    initializeChart() {
-        const ctx = document.getElementById('myChart').getContext('2d');
-        this.chart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'],
-                datasets: [{
-                    label: 'E2',
-                    data: [10, 20, 30, 40, 50],  // Initial data
-                    borderColor: 'pink',
-                    fill: false
-                }, {
-                    label: 'DHT',
-                    data: [10, 20, 30, 40, 50],  // Initial data
-                    borderColor: 'blue',
-                    fill: false
-                }, {
-                    label: 'Total Testosterone',
-                    data: [10, 20, 30, 40, 50],  // Initial data
-                    borderColor: 'red',
-                    fill: false
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    x: {
-                        type: 'time',  // Use time scale
-                        time: {
-                            unit: 'day',  // Display unit is 'day'
-                            displayFormats: {
-                                day: 'DD/MM',
-                            },
-                                tooltipFormat: 'll',  // Format for tooltips (optional)
-                            },
-                                title: {
-                                display: true,
-                                text: 'Date'
-                            },
-                                ticks: {
-                                maxRotation: 0,  // Optional: Prevent the labels from rotating too much
-                                autoSkip: true,  // Automatically skip labels if they are too crowded
-                                maxTicksLimit: 10,  // Limit the number of ticks to show on the X-axis
-                            }
-                        },
-                    y: {
-                            beginAtZero: true
-                    }
-                }
-            }
-        });
-    },
-    updateChart() {
-        // Update chart when dose or other settings change
-        const { dose, doseFrequency, startDate, durationWeeks, age, nmolNgDl, halflife, cmax, tmax, bioavailability, AUC, S} = this.settings;
-        const days = durationWeeks * 7;
-        // Calculate testosterone concentration with hysteresis
-        function calculateTestosteroneConcentration(dose, doseFrequency, startDate, durationWeeks, age, nmolNgDl, halflife, cmax, tmax, bioavailability, AUC, S) {
-               // Elimination rate constant
-            const ke = Math.LN2 / halflife;
-
-            // Solve absorption rate constant (ka) from tmax via Newton's method
-            // tmax = ln(ka/ke) / (ka - ke)  →  solve for ka
-            let ka = 3 * ke;
-            for (let i = 0; i < 200; i++) {
-                if (ka <= ke) ka = ke * 1.001;
-                const diff = ka - ke;
-                const logRatio = Math.log(ka / ke);
-                const f = logRatio / diff - tmax;
-                const df = (1 / ka * diff - logRatio) / (diff * diff);
-                ka -= f / df;
-                if (Math.abs(f / df) < 1e-14) break;
-            }
-            if (ka <= ke || !isFinite(ka)) ka = ke * 2;
-
-            // Scale factor: make the unscaled Bateman peak equal to cmax * dose * bioavailability
-            const peakTime = Math.log(ka / ke) / (ka - ke);
-            const peakVal  = Math.exp(-ke * peakTime) - Math.exp(-ka * peakTime);
-            //S = (cmax * dose * bioavailability) / peakVal *.3;
-            console.log(`s = ${S}`);
-            // Single-dose Bateman function: concentration at time t after one injection at t=0
-            function singleDose(t) {
-                if (t <= 0) return 0;
-                return S * (Math.exp(-ke * t) - Math.exp(-ka * t));
-            }
-
-            // Michaelis-Menten conversion (Lakshman et al. 2010)
-            // E2 (pg/mL) = A_e2 * T / (Km_e2 + T) where T is in ng/dL
-            // DHT (ng/dL) = A_dht * T / (Km_dht + T)
-
-            // Constants for YOUNG MEN (ages 19-35)
-            let A_e2   = 100.7;  // Max E2 capacity
-            let Km_e2  = 1981.0; // T concentration at half-max E2 conversion
-
-            let A_dht  = 161.2;  // Max DHT capacity
-            let Km_dht = 1109.2; // T concentration at half-max DHT conversion
-
-            // Constants for OLD MEN (ages 36-60)
-            if (age === 'old') {
-                 A_e2   = 138.3;  // Max E2 capacity
-                 Km_e2  = 1470.1; // T concentration at half-max E2 conversion
-                 A_dht  = 269.4;  // Max DHT capacity
-                 Km_dht = 2389.6; // T concentration at half-max DHT conversion
-            }
-
-            // Build array of injection times
-            const injections = [];
-            for (let d = 0; d < days; d += doseFrequency) {
-                injections.push(d);
-            }
-
-            // Calculate concentrations — 6 steps per day (every 4 hours)
-            const stepsPerDay = 4;
-            const extendedSteps = stepsPerDay * (halflife *5 ); // run till blood concentration is zero
-            const totalSteps = (days * stepsPerDay) + extendedSteps;
-            const concentrations = [];
-            let stepDate = new Date(startDate);
-            let totalAUC = 0; // Initialize AUC variable
-            for (let step = 0; step <= totalSteps; step++) {
-                const t = step / stepsPerDay;
-                stepDate.setTime(stepDate.getTime() + (4 * 60 * 60 * 1000)) // Add 4 hours
-                // Superposition: sum contribution from every past injection
-                let testosterone = 0;
-                for (const injTime of injections) {
-                    testosterone += singleDose(t - injTime);
-                }
-                // Calculate AUC by integrating concentration over time (approximated using trapezoidal rule)
-                if (step > 0) {
-                    const prevConcentration = concentrations[step - 1].testosterone;
-                    const deltaTime = 4 / 24; // 4 hours, converted to days
-                    totalAUC += (prevConcentration + testosterone) * deltaTime / 2; // Trapezoidal rule for AUC
-                }
-
-                let estradiol = (A_e2  * testosterone) / (Km_e2  + testosterone);
-                let dht       = (A_dht * testosterone) / (Km_dht + testosterone);
-
-                if (nmolNgDl === 'nmol') {
-                    testosterone = testosterone * 0.0347;
-                    estradiol = estradiol * 3.67;
-                    dht = dht * 0.0347;
-                }
-                concentrations.push({
-                    day: new Date(stepDate.getTime()),
-                    testosterone: testosterone,  // ng/dL
-                    estradiol: estradiol,         // pg/mL
-                    dht: dht,                      // ng/dL
-                    AUC: totalAUC // Running total of AUC
-                });
-                console.log(`Date: ${stepDate.toISOString()}, Testosterone: ${testosterone.toFixed(2)}, Estradiol: ${estradiol.toFixed(2)}, DHT: ${dht.toFixed(2)}, AUC: ${totalAUC.toFixed(2)}`);
-            }
-            let targetAUC = AUC * dose;
-            if (nmolNgDl === 'nmol') {
-                targetAUC = AUC * 0.0347 * dose;
-            }
-            let doseAdjustedAUC = totalAUC;
-            // Adjust simulated AUC by dose to compare with known AUC
-            let difference = Math.abs(doseAdjustedAUC - targetAUC);  // Calculate the difference
-            console.log(`Total AUC: ${doseAdjustedAUC.toFixed(2)} ng/dL·h/L`);
-            console.log(`Target AUC: ${targetAUC} ng/dL·h/L`);
-            console.log(`Difference: ${difference.toFixed(2)} ng/dL·h/L`);
-
-            return concentrations;
-        }
-
-        // Calculate Total Testosterone for each day
-        const  concentrations = calculateTestosteroneConcentration(dose, doseFrequency,startDate, durationWeeks, age, nmolNgDl, halflife, cmax, tmax, bioavailability, AUC, S);
-        this.chart.data.datasets[0].data =[];
-        this.chart.data.datasets[1].data =[];
-        this.chart.data.datasets[2].data =[];
-        this.chart.data.labels =[];
-        for (let c in concentrations) {
-            this.chart.data.datasets[0].data.push(concentrations[c].estradiol)
-            this.chart.data.datasets[1].data.push(concentrations[c].dht)
-            this.chart.data.datasets[2].data.push(concentrations[c].testosterone);
-            this.chart.data.labels.push(new Date(concentrations[c].day));
-
-        }
-        if (nmolNgDl === 'ng') {
-            this.chart.data.datasets[0].label = 'E2 (pg/mL)';
-            this.chart.data.datasets[1].label = 'DHT (ng/dL)';
-            this.chart.data.datasets[2].label = 'TT (ng/dL)';
-        } else {
-            this.chart.data.datasets[0].label = 'E2 (pmol/L)';
-            this.chart.data.datasets[1].label = 'DHT (nmol/L)';
-            this.chart.data.datasets[2].label = 'TT (nmol/L)';
-        }
-        console.log(this.chart.data.datasets[0].data);
-        console.log(this.chart.data.labels);
-        // Update chart data
-        this.chart.update();  // Redraw the chart
-    },
-    updateDuration() {
-        this.settings.startDate = new Date(this.settings.startDateField);
-        this.updateChart(); // Update chart when duration changes
-    }
-}" x-init="initializeChart(); updateChart();">
-
-    <h1>Adjust Settings</h1>
-    <!-- Toggle nmol/ng/dl -->
-    <div class="toggle-group">
-        <label>
-            <input type="radio" x-model="settings.age" value="young" x-on:change="updateChart()">
-            young
-        </label>
-        <label>
-            <input type="radio" x-model="settings.age" value="old" x-on:change="updateChart()">
-            old
-        </label>
-    </div>
-
-    <!-- Toggle nmol/ng/dl -->
-    <div class="toggle-group">
-        <label>
-            <input type="radio" x-model="settings.nmolNgDl" value="nmol" x-on:change="updateChart()">
+        <!-- Toggle nmol/ng/dl -->
+        <div class="toggle-group">
+            <div class="input-field">
+                <label for="age">Age Range:</label>
+            </div>
+            <input id="age" type="radio" x-model="settings.nmolNgDl" value="nmol" x-on:change="updateChart()">
             nmol/L
-        </label>
-        <label>
-            <input type="radio" x-model="settings.nmolNgDl" value="ng" x-on:change="updateChart()">
+            <input id="nmol" type="radio" x-model="settings.nmolNgDl" value="ng" x-on:change="updateChart()">
             ng/dl
-        </label>
-    </div>
-    <!-- S -->
-    <div class="input-field">
-        <label for="S">S:</label>
-        <input type="number" id="S" x-model.number="settings.S" min="0" step="5" placeholder="S"
-               x-on:change="updateChart()">
-    </div>
+        </div>
 
-    <!-- Dose -->
-    <div class="input-field">
-        <label for="dose">Dose (mg):</label>
-        <input type="number" id="dose" x-model.number="settings.dose" min="0" step="5" placeholder="Enter dose in mg"
-               x-on:input="updateChart()">
-    </div>
+        <!-- Dose -->
+        <div class="input-field">
+            <label for="dose">Dose (mg):</label>
+            <input type="number" id="dose" x-model.number="settings.dose" min="0" step="5"
+                   placeholder="Enter dose in mg"
+                   x-on:input="updateChart()">
+        </div>
 
-    <!-- Dose Frequency -->
-    <div class="input-field">
-        <label for="doseFrequency">Dose Frequency (days):</label>
-        <input type="number" id="doseFrequency" x-model.number="settings.doseFrequency" min="1" step="1"
-               placeholder="Enter dose frequency in days" x-on:input="updateChart()">
-    </div>
+        <!-- Dose Frequency -->
+        <div class="input-field">
+            <label for="doseFrequency">Interval (days):</label>
+            <input type="number" id="doseFrequency" x-model.number="settings.doseFrequency" min="1" step="1"
+                   placeholder="Enter dose frequency in days" x-on:input="updateChart()">
+        </div>
 
-    <!-- half life -->
-    <div class="input-field">
-        <label for="dose">Halflife (days):</label>
-        <input type="number" id="halflife" x-model.number="settings.halflife" min="0" step="0.1"
-               placeholder="Compound halflife" x-on:input="updateChart()">
-    </div>
 
-    <!-- cmax -->
-    <div class="input-field">
-        <label for="dose">cmax:</label>
-        <input type="number" id="cmax" x-model.number="settings.cmax" min="0" step="0.1" placeholder="cmax"
-               x-on:input="updateChart()">
-    </div>
+        <!-- Start Date -->
+        <div class="input-field">
+            <label for="startDateField">Start Date:</label>
+            <input type="date" id="startDateField" x-model="settings.startDateField" x-on:input="updateDuration()">
+        </div>
 
-    <!-- tmax -->
-    <div class="input-field">
-        <label for="dose">Tmax:</label>
-        <input type="number" id="tmax" x-model.number="settings.tmax" min="0" step="0.1" placeholder="tmax"
-               x-on:input="updateChart()">
-    </div>
+        <!-- Duration (Weeks) -->
+        <div class="input-field">
+            <label for="durationWeeks">Duration (weeks):</label>
+            <input type="number" id="durationWeeks" x-model.number="settings.durationWeeks" min="1"
+                   placeholder="Duration in weeks" x-on:input="updateChart()">
+        </div>
 
-    <!-- bioavailability -->
-    <div class="input-field">
-        <label for="dose">bioavailability:</label>
-        <input type="number" id="bioavailability" x-model.number="settings.bioavailability" min="0" step="0.1"
-               placeholder="bioavailability" x-on:input="updateChart()">
-    </div>
+        <!-- half life -->
+        <div class="input-field">
+            <label for="dose">Halflife (days):</label>
+            <input type="number" id="halflife" x-model.number="settings.halflife[settings.esterIndex]" min="0"
+                   step="0.1"
+                   placeholder="Compound halflife" x-on:input="updateChart()">
+        </div>
 
-    <!-- Start Date -->
-    <div class="input-field">
-        <label for="startDateField">Start Date:</label>
-        <input type="date" id="startDateField" x-model="settings.startDateField" x-on:input="updateDuration()">
-    </div>
+        <!-- cmax -->
+        <div class="input-field">
+            <label for="dose">cmax:</label>
+            <input type="number" id="cmax" x-model.number="settings.cmax[settings.esterIndex]" min="0" step="0.1"
+                   placeholder="cmax"
+                   x-on:input="updateChart()">
+        </div>
 
-    <!-- Duration (Weeks) -->
-    <div class="input-field">
-        <label for="durationWeeks">Duration (weeks):</label>
-        <input type="number" id="durationWeeks" x-model.number="settings.durationWeeks" min="1"
-               placeholder="Duration in weeks" x-on:input="updateChart()">
-    </div>
+        <!-- tmax -->
+        <div class="input-field">
+            <label for="dose">Tmax:</label>
+            <input type="number" id="tmax" x-model.number="settings.tmax[settings.esterIndex]" min="0" step="0.1"
+                   placeholder="tmax"
+                   x-on:input="updateChart()">
+        </div>
 
-    <!-- Display the Current Settings (for debugging)
+        <!-- bioavailability -->
+        <div class="input-field">
+            <label for="dose">bioavailability:</label>
+            <input type="number" id="bioavailability" x-model.number="settings.bioavailability[settings.esterIndex]"
+                   min="0" step="0.1"
+                   placeholder="bioavailability" x-on:input="updateChart()">
+        </div>
 
-    <div class="settings-display">
-        <h2>Current Settings:</h2>
-        <pre x-text="JSON.stringify(settings, null, 2)"></pre>
-        <pre x-text="JSON.stringify(chart.data.datasets[0], null, 2)"></pre>
-        <pre x-text="JSON.stringify(chart.data.datasets[1], null, 2)"></pre>
-        <pre x-text="JSON.stringify(chart.data.datasets[2], null, 2)"></pre>
+        <!-- Display the Current Settings (for debugging)
+
+        <div class="settings-display">
+            <h2>Current Settings:</h2>
+            <pre x-text="JSON.stringify(settings, null, 2)"></pre>
+            <pre x-text="JSON.stringify(chart.data.datasets[0], null, 2)"></pre>
+            <pre x-text="JSON.stringify(chart.data.datasets[1], null, 2)"></pre>
+            <pre x-text="JSON.stringify(chart.data.datasets[2], null, 2)"></pre>
+        </div>
+        -->
+        <br/>
     </div>
-    -->
+            <label>Source:</label>
+    <a :href="settings.sources[settings.esterIndex]" target="_blank">
+        <span x-text="settings.sources[settings.esterIndex]"></span>
+    </a>
 </div>
 
 </body>
