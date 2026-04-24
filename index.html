@@ -4,17 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Metabolite Plotter</title>
-    <script src="./scripts/app.js" ></script>
+    <script src="./scripts/app.js"></script>
+    <script src="./scripts/ester-data.js"></script>
+    <script src="./scripts/calc-curve.js"></script>
+    <script src="./scripts/bateman.js"></script>
+    <script src="./scripts/chartSettings.js"></script>
 
     <!-- Load Alpine.js -->
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@2.8.2/dist/alpine.min.js" defer></script>
     <style>
+        :root {
+            --bg: #f4f4f9;
+            --panel: #ffffff;
+            --text: #333;
+            --muted: #666;
+            --border: #ddd;
+        }
+
+        .dark {
+            --bg: #121212;
+            --panel: #302c2c;
+            --text: #e6e6e6;
+            --muted: #aaa;
+            --border: #474a57; /* 👈 better contrast than #333 */
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg-color: #1a1a1a;
+                --text-color: #e0e0e0;
+                --accent-color: #66b3ff;
+            }
+        }
+
         /* General Body and Font Styling */
         body {
             font-family: 'Arial', sans-serif;
-            background-color: #f4f4f9;
-            padding: 40px 20px;
-            color: #333;
+            background: var(--bg);
+            color: var(--text);
             margin: 0;
         }
 
@@ -22,10 +49,10 @@
         .container {
             max-width: 800px;
             margin: 0 auto;
-            background-color: #fff;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            background-color: var(--panel);
         }
 
         /* Header Style */
@@ -33,13 +60,16 @@
             font-size: 24px;
             text-align: center;
             margin-bottom: 20px;
-            color: #333;
+        }
+
+        h1, h2, label {
+            color: var(--text);
         }
 
         .form-grid {
             display: grid;
-            grid-template-columns: 1fr; /* default: single column */
-            gap: 20px;
+            grid-template-columns: 1fr;
+            gap: 12px;
         }
 
         /* When viewport gets wider */
@@ -55,13 +85,6 @@
             }
         }
 
-        /* Styling input fields */
-        .input-field {
-            margin-bottom: 20px;
-            display: flex;
-            flex-direction: column;
-        }
-
         .input-field label {
             margin-bottom: 8px;
             font-weight: bold;
@@ -75,12 +98,6 @@
             border-radius: 4px;
             width: 100%;
             box-sizing: border-box;
-        }
-
-
-        /* Toggle group style */
-        .toggle-group {
-            margin-bottom: 20px;
         }
 
         .toggle-group label {
@@ -106,13 +123,13 @@
             height: 1000px; /* Optional: Set a fixed height for the canvas */
             display: block; /* Ensure block display so it can take up the full width */
             border-radius: 6px; /* Rounded corners for the chart */
-            background-color: #ffffff; /* White background for the canvas */
+            background: var(--panel);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Shadow to match the form */
         }
 
         /* Settings Display */
         .settings-display {
-            background-color: #f9f9f9;
+            background-color: var(--panel);
             border-radius: 6px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             margin-top: 20px;
@@ -131,6 +148,111 @@
             overflow: auto;
             color: #333;
         }
+
+        .field {
+            display: grid;
+            grid-template-columns: 110px 1fr;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .field input,
+        .field select {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            color: var(--text);
+            width: 100%;
+            padding: 6px 8px;
+            font-size: 13px;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        label {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 6px 8px;
+            font-size: 13px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--panel);
+            color: var(--text);
+        }
+
+        /* POSITION TOP RIGHT */
+        .theme-toggle {
+            position: static;
+            flex-shrink: 0;
+        }
+
+        /* SWITCH WRAPPER */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 28px;
+        }
+
+        .switch input {
+            display: none;
+        }
+
+        /* TRACK */
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background-color: #ccc;
+            transition: .3s;
+            border-radius: 999px;
+        }
+
+        /* KNOB */
+        .slider:before {
+            content: "";
+            position: absolute;
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            top: 3px;
+            background: white;
+            transition: .3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        /* ACTIVE STATE */
+        input:checked + .slider {
+            background-color: #4f46e5;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .title {
+            margin: 0;
+            flex: 1;
+        }
+
+        .header-row h2 {
+            margin: 0;
+            font-size: 20px;
+        }
     </style>
 
     <!-- Load Chart.js -->
@@ -139,127 +261,90 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@^1"></script>
 </head>
 <body>
-<div class="container" x-data="metaboliteApp()" x-init="initializeChart(); updateChart();">
-    <!-- Canvas for Chart.js -->
-    <h2 align="center"><span x-text="settings.esterList[settings.esterIndex]"></span></h2>
-    <canvas style="height:600px" id="myChart"></canvas>
+<div class="container" x-data="metaboliteApp()" x-init="initializeChart(); updateChart();" :class="theme">
 
-    <h2>Adjust Settings</h2>
-    <div class="form-grid">
-        <!-- Select compound -->
-        <div class="input-field">
-            <label for="dose">Ester:</label>
-            <select x-model.number="settings.esterIndex" @change="updateChart()">
-                <template x-for="(ester, index) in settings.esterList" :key="index">
-                    <option :value="index" x-text="ester"></option>
-                </template>
-            </select>
-            <!-- Selected index: <span x-text="settings.esterIndex"></span><br>
-               Selected ester:
-               <span x-text="settings.esterList[settings.esterIndex]"></span>
-           -->
-        </div>
-        <!-- Toggle nmol/ng/dl -->
-        <div class="toggle-group">
-            <div class="input-field">
-                <label for="age">Units:</label>
-            </div>
-            <label>
-                <input type="radio" x-model="settings.age" value="young" x-on:change="updateChart()">
-                young (18-36)
-                <input type="radio" x-model="settings.age" value="old" x-on:change="updateChart()">
-                old (36+)
+    <div class="header-row">
+        <h2 class="title">
+            <span x-text="settings.esterData[settings.esterKey].name"></span>
+        </h2>
+
+        <div class="theme-toggle">
+            <label class="switch">
+                <input type="checkbox"
+                       :checked="theme === 'dark'"
+                       @change="
+                        theme = $event.target.checked ? 'dark' : 'light';
+                       localStorage.setItem('theme', theme);
+                       updateChart();
+                        ">
+                <span class="slider"></span>
             </label>
         </div>
+    </div>
 
-        <!-- Toggle nmol/ng/dl -->
-        <div class="toggle-group">
-            <div class="input-field">
-                <label for="age">Age Range:</label>
-            </div>
-            <input id="age" type="radio" x-model="settings.nmolNgDl" value="nmol" x-on:change="updateChart()">
-            nmol/L
-            <input id="nmol" type="radio" x-model="settings.nmolNgDl" value="ng" x-on:change="updateChart()">
-            ng/dl
+    <!-- Canvas for Chart.js -->
+    <canvas style="height:400px" id="myChart"></canvas>
+
+    <h2>Adjust Settings</h2>
+    <div class="form-grid" x-effect="updateChart()" x-on:change="updateChart()">
+        <!-- Select compound -->
+        <div class="field">
+            <label for="dose">Ester:</label>
+            <select x-model="settings.esterKey">
+                <template x-for="[key, ester] in Object.entries(settings.esterData)" :key="key">
+                    <option
+                            :value="key"
+                            :selected="settings.esterKey === key"
+                            x-text="ester.name">
+                    </option>
+                </template>
+            </select>
         </div>
-
         <!-- Dose -->
-        <div class="input-field">
+        <div class="field">
             <label for="dose">Dose (mg):</label>
             <input type="number" id="dose" x-model.number="settings.dose" min="0" step="5"
                    placeholder="Enter dose in mg"
-                   x-on:input="updateChart()">
+            >
         </div>
-
+        <!-- Start Date -->
+        <div class="field">
+            <label for="startDateField">Start Date:</label>
+            <input type="date" id="startDateField" x-model="settings.startDateField">
+        </div>
         <!-- Dose Frequency -->
-        <div class="input-field">
+        <div class="field">
             <label for="doseFrequency">Interval (days):</label>
             <input type="number" id="doseFrequency" x-model.number="settings.doseFrequency" min="1" step="1"
-                   placeholder="Enter dose frequency in days" x-on:input="updateChart()">
+                   placeholder="Enter dose frequency in days">
         </div>
-
-
-        <!-- Start Date -->
-        <div class="input-field">
-            <label for="startDateField">Start Date:</label>
-            <input type="date" id="startDateField" x-model="settings.startDateField" x-on:input="updateDuration()">
-        </div>
-
         <!-- Duration (Weeks) -->
-        <div class="input-field">
-            <label for="durationWeeks">Duration (weeks):</label>
-            <input type="number" id="durationWeeks" x-model.number="settings.durationWeeks" min="1"
-                   placeholder="Duration in weeks" x-on:input="updateChart()">
+        <div class="field">
+            <label>Duration</label>
+            <input type="number"
+                   x-model.number="settings.durationWeeks"
+                   min="1">
         </div>
-
-        <!-- half life -->
-        <div class="input-field">
-            <label for="dose">Halflife (days):</label>
-            <input type="number" id="halflife" x-model.number="settings.halflife[settings.esterIndex]" min="0"
-                   step="0.1"
-                   placeholder="Compound halflife" x-on:input="updateChart()">
+        <!-- Toggle nmol/ng/dl -->
+        <div x-show="settings.esterData[settings.esterKey].active_form === 'test'">
+            <div class="field">
+                <label>Age:</label>
+                <select x-model="settings.age">
+                    <option value="young">young (18-36)</option>
+                    <option value="old">old (36+)</option>
+                </select>
+            </div>
         </div>
+        <!-- Toggle nmol/ng/dl -->
+        <div class="field">
+            <label>Units</label>
 
-        <!-- cmax -->
-        <div class="input-field">
-            <label for="dose">cmax:</label>
-            <input type="number" id="cmax" x-model.number="settings.cmax[settings.esterIndex]" min="0" step="0.1"
-                   placeholder="cmax"
-                   x-on:input="updateChart()">
+            <select x-model="settings.nmolNgDl">
+                <option value="nmol">nmol/L</option>
+                <option value="ngdl">ng/dL</option>
+            </select>
         </div>
-
-        <!-- tmax -->
-        <div class="input-field">
-            <label for="dose">Tmax:</label>
-            <input type="number" id="tmax" x-model.number="settings.tmax[settings.esterIndex]" min="0" step="0.1"
-                   placeholder="tmax"
-                   x-on:input="updateChart()">
-        </div>
-
-        <!-- bioavailability -->
-        <div class="input-field">
-            <label for="dose">bioavailability:</label>
-            <input type="number" id="bioavailability" x-model.number="settings.bioavailability[settings.esterIndex]"
-                   min="0" step="0.1"
-                   placeholder="bioavailability" x-on:input="updateChart()">
-        </div>
-
-        <!-- Display the Current Settings (for debugging)
-
-        <div class="settings-display">
-            <h2>Current Settings:</h2>
-            <pre x-text="JSON.stringify(settings, null, 2)"></pre>
-            <pre x-text="JSON.stringify(chart.data.datasets[0], null, 2)"></pre>
-            <pre x-text="JSON.stringify(chart.data.datasets[1], null, 2)"></pre>
-            <pre x-text="JSON.stringify(chart.data.datasets[2], null, 2)"></pre>
-        </div>
-        -->
-        <br/>
     </div>
-            <label>Source:</label>
-    <a :href="settings.sources[settings.esterIndex]" target="_blank">
-        <span x-text="settings.sources[settings.esterIndex]"></span>
-    </a>
 </div>
 
 </body>
