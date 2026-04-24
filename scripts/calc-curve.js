@@ -7,7 +7,7 @@ function calc_curve(time_interval, draw_point_time, baseline, dose, dose_interva
 
     var dose_transform = dose / params['fit_dose'];
     if (model === 'bateman') {
-         dose_transform = dose / dose; // we dont use a fit transformation.
+        dose_transform = dose * params['bioavailability']/params['fit_dose'];
     }
     var curve_data = [];
 
@@ -96,10 +96,8 @@ function calc_curve_point(t, model, p, dose) {
             const peakTime = Math.log(ka / ke) / (ka - ke);
             const peakVal = Math.exp(-ke * peakTime) - Math.exp(-ka * peakTime);
 
-            const S = (p['cMax'] * dose * p['bioavailability']) / peakVal;
-            //console.log(`S = ${p['cMax']} * ${dose} * ${p['bioavailability']} / ${peakVal}`)
-            //console.log(`Using model bateman with parameters: dose ${dose} D=${p['tMax']}, V=${p['cMax']}, ka=${ka}, ke=${ke}, peakTime=${peakTime}, peakVal=${peakVal}, S=${S}`);
-            return model_bateman(t, S, ka, ke);
+            const S = (p['cMax']) / peakVal;
+           return model_bateman(t, S , ka, ke);
     }
 }
 

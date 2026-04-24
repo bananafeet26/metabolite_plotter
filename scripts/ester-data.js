@@ -30,6 +30,7 @@ var ester_data = {
         ester_shortcode: 'eb',
         params: {
             /* V3C */
+            bioavailability: 1,
             fit_dose: 5, // mg
             D: 1.7050e+08,
             k1: 3.22397192,
@@ -46,7 +47,7 @@ var ester_data = {
         model: 'v3c',
         ester_shortcode: 'ev',
         params: {
-            /* V3C */
+            bioavailability: 1,
             fit_dose: 5, // mg
             D: 2596.05956,
             k1: 2.38229125,
@@ -63,6 +64,7 @@ var ester_data = {
         model: 'v3c',
         ester_shortcode: 'ec_o',
         params: {
+            bioavailability: 1,
             /* V3C */
             fit_dose: 5, // mg
             D: 1920.89671,
@@ -80,6 +82,7 @@ var ester_data = {
         ester_shortcode: 'een',
         model: 'v3c',
         params: {
+            bioavailability: 1,
             /* V3C */
             fit_dose: 5, // mg
             D: 333.874181,
@@ -97,12 +100,29 @@ var ester_data = {
         ester_shortcode: 'eu',
         model: 'v3c',
         params: {
+            bioavailability: 1,
             /* V3C */
             fit_dose: 5, // mg
             D: 65.9493374,
             k1: 0.29634323,
             k2: 4799337.57,
             k3: 0.03141554,
+        },
+    },
+    tp_o: {
+        name: 'Testosterone propionate',
+        short_name: 'TP oil',
+        dose_form: 'oil',
+        trace_label_format: '<name> <form>',
+        active_form: 'test',
+        ester_shortcode: 'tp_o',
+        model: 'bateman',
+        params: {
+            fit_dose: 150,
+            bioavailability: 0.84,
+            halflife: 1.0375,
+            cMax: 26000,
+            tMax: 1.0625,
         },
     },
     // source: https://www.sciencedirect.com/science/article/pii/S1262363626000261#sec0006
@@ -116,9 +136,9 @@ var ester_data = {
         model: 'bateman',
         params: {
             fit_dose: 200,
-            bioavailability: 1,
-            halflife: 8,
-            cMax: 1113.3012/20, // 38.6 ± 10.3 // devided by 2 because was for 200mg
+            bioavailability: 1,//.7,
+            halflife: 6.9,
+            cMax: 11133.012, // 38.6 ± 10.3
             tMax: 4.5,
         },
     },
@@ -132,10 +152,26 @@ var ester_data = {
         model: 'bateman',
         params: {
             fit_dose: 100,
-            bioavailability: 1,
-            halflife: 7,
-            cMax: 865.26/10,//ngdl // 30 ± 8.3 nmol // devided by 10 because was for 100mg
-            tMax: 1,
+            bioavailability: .72,
+            halflife: 7.19,
+            cMax: 865.26, // doubt this number //ngdl // 30 ± 8.3 nmol // devided by 10 because was for 100mg
+            tMax: 1.3875,
+        },
+    },
+    tdec: {
+        name: 'Testosterone decanoate',
+        short_name: 'TEdec',
+        dose_form: 'oil',
+        trace_label_format: '<name>',
+        active_form: 'test',
+        ester_shortcode: 'tdec',
+        model: 'bateman',
+        params: {
+            fit_dose: 400,
+            bioavailability: 0.65,
+            halflife: 21.3,
+            cMax: 11738.694, // ?
+            tMax: 1.5125,
         },
     },
     tun: {
@@ -148,9 +184,9 @@ var ester_data = {
         model: 'bateman',
         params: {
             fit_dose: 1000,
-            bioavailability: 1,
+            bioavailability: .65,
             halflife: 53,
-            cMax: 1211.364/100,// 42 nmol // devided by 100 because was for 1000mg
+            cMax: 12113.64,// 42 nmol // devided by 100 because was for 1000mg
             tMax: 7,
         },
     },

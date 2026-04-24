@@ -47,12 +47,12 @@
 
         /* Container for the form */
         .container {
-            max-width: 800px;
             margin: 0 auto;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             background-color: var(--panel);
+            height: 100vh;
         }
 
         /* Header Style */
@@ -120,11 +120,12 @@
             margin-top: 5px;
             margin-bottom: 5px;
             width: 100%; /* Ensures canvas stretches to fit container */
-            height: 1000px; /* Optional: Set a fixed height for the canvas */
             display: block; /* Ensure block display so it can take up the full width */
             border-radius: 6px; /* Rounded corners for the chart */
             background: var(--panel);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Shadow to match the form */
+            max-height: 60%;
+            height: 500px; /* Optional: Set a fixed height for the canvas */
         }
 
         /* Settings Display */
@@ -141,7 +142,7 @@
         }
 
         pre {
-            background-color: #eee;
+            background-color: #e60000;
             padding: 15px;
             border-radius: 6px;
             font-size: 14px;
@@ -320,7 +321,7 @@
         </div>
         <!-- Duration (Weeks) -->
         <div class="field">
-            <label>Duration</label>
+            <label>Duration (weeks)</label>
             <input type="number"
                    x-model.number="settings.durationWeeks"
                    min="1">
@@ -343,6 +344,20 @@
                 <option value="nmol">nmol/L</option>
                 <option value="ngdl">ng/dL</option>
             </select>
+        </div>
+        <!-- Simulation -->
+        <div class="field">
+            <label>Simulation</label>
+
+            <select x-model="settings.steadyState">
+                <option value="true">steady state</option>
+                <option value="false">zero point</option>
+            </select>
+        </div>
+        <!-- Draw Points -->
+        <div class="field">
+            <label for="dose">Draw points (per day):</label>
+            <input type="number" id="dose" x-model.number="settings.drawPointTime" min=".005" step=".0125">
         </div>
     </div>
 </div>

@@ -1,11 +1,11 @@
 function metaboliteApp() {
     return {
         settings: {
-            dose: 200,
-            doseFrequency: 7,
+            dose: 25,
+            doseFrequency: 1,
             startDate: new Date(),
             startDateField: new Date().toISOString().split('T')[0],
-            durationWeeks: 6,
+            durationWeeks: 2,
             age: 'young',
             nmolNgDl: 'ngdl',
             //halflife: [7.19, 6.9, 1.0375, 21.3, 33.9], // t1/2 days
@@ -14,7 +14,9 @@ function metaboliteApp() {
             //bioavailability: [0.72, 0.7, 0.84, 0.65,0.65], // percentage
             //AUC: [2588], //https://academic.oup.com/view-large/389646248
             esterData: ester_data,
-            esterKey: 'tc_o',
+            esterKey: 'tp_o',
+            steadyState: false,
+            drawPointTime: 0.1675,
         },
         theme: localStorage.getItem('theme') || 'light',
         chart: null,  // Store the Chart.js instance here
@@ -58,11 +60,8 @@ function metaboliteApp() {
             // To ensure no variability in peak/trough rendering at long time intervals / frequent doses
 
             if (typeof (this.settings.startDateField) !== "undefined" ) {
-                console.log(this.settings.startDateField);
-                console.log(this.settings.startDate);
                 const [year, month, day] = this.settings.startDateField.split('-').map(Number);
                 const date = new Date(year, month - 1, day);
-                console.log(`New date:  ${date} ${year} ${month} ${day}`);
                 this.settings.startDate = date;
             }
             if (isNaN(this.settings.startDate.getTime())) {
@@ -95,7 +94,7 @@ function metaboliteApp() {
             let dose_interval_units = 'weeks';
             let dose_limit = (this.settings.durationWeeks * 7) / this.settings.doseFrequency;
             dose_limit = dose_limit.toFixed(0);
-            let steady_state = false;
+            let steady_state = this.settings.steadyState;
 
             options.active_form = ester.active_form
             options.molecular_weight = active_form_data[options.active_form].molecular_weight;
@@ -141,7 +140,7 @@ function metaboliteApp() {
                 }
             }
 
-            draw_point_time = 0.5; // override here other wise autistic math breaks.
+            draw_point_time = this.settings.drawPointTime; // override here other wise autistic math breaks.
             let baseline = 0;
             let curve_data = calc_curve(time_interval, draw_point_time, baseline, dose, dose_interval, multi_dose,
                 dose_limit, steady_state, ester['model'], ester['params'], this.settings.startDate, activeUnit, active_form_data[ester['active_form']].molecular_weight);
@@ -254,7 +253,7 @@ function metaboliteApp() {
                 this.chart.data.datasets.push(esterModelMetaboliteDataset1);
                 this.chart.data.datasets.push(esterModelMetaboliteDataset2);
             }
-            console.log(this.chart.data);
+            //console.log(this.chart.data); //debug
             // Chart settings
             // chart theme
             const t = this.getChartTheme();
