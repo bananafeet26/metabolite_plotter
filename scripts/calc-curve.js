@@ -4,7 +4,7 @@
 // Make curve
 function calc_curve(time_interval, draw_point_time, baseline, dose, dose_interval, multi_dose, dose_limit, steady_state, model, params, startDate, nmolNgDl, molecularWeight) {
     console.log(`Calculating curve for ${time_interval} days, ${draw_point_time} days per point, baseline ${baseline}, dose ${dose}, dose interval ${dose_interval}, multi-dose ${multi_dose}, dose limit ${dose_limit}, steady state ${steady_state}, model ${model}, params ${params}, startDate ${startDate.getDate()}, nmolNgDl ${nmolNgDl}, molecularWeight ${molecularWeight}`)
-
+    console.log(params);
     var dose_transform = dose / params['fit_dose'];
     if (model === 'bateman') {
         dose_transform = dose * params['bioavailability']/params['fit_dose'];
@@ -97,10 +97,28 @@ function calc_curve_point(t, model, p, dose) {
             const peakVal = Math.exp(-ke * peakTime) - Math.exp(-ka * peakTime);
 
             const S = (p['cMax']) / peakVal;
-           return model_bateman(t, S , ka, ke);
+            /* calculate 3 compartment*/
+            const k3 = Math.LN2 / (p.halflife);
+            const k2 = k3 * 15;
+            const k1 = k3 * 80;
+            const D = findScale(p['cMax'], p['tMax'], k1, k2, k3);
+            /* calculate 3 compartment*/
+            // attempt non bateman model:
+            //console.log(p['useBatemanOnly']);
+            if ( p['useBatemanOnly'] === "false") {
+                //console.log(`model_v3c: t: ${t} D: ${D} k1: ${k1} k2: ${k2} k3 ${k3}`);
+                return model_v3c(t, D, k1, k2, k3);
+            } else {
+                //console.log(`bateman: t: ${t} S: ${S} ka: ${ka} ke: ${ke}`);
+                return model_bateman(t, S, ka, ke);
+            }
     }
 }
 
+function findScale(targetCmax, tMax, k1, k2, k3) {
+    const val = model_v3c(tMax, 1, k1, k2, k3);
+    return targetCmax / val;
+}
 function model_1c(t, D, Vd, ka, ke) {
     return (D * ka) / (Vd * (ka - ke)) * (Math.exp(-ke * t) - Math.exp(-ka * t));
 }

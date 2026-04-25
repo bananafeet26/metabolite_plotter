@@ -8,15 +8,16 @@ function metaboliteApp() {
             durationWeeks: 2,
             age: 'young',
             nmolNgDl: 'ngdl',
-            //halflife: [7.19, 6.9, 1.0375, 21.3, 33.9], // t1/2 days
-            //cmax: [11.3095, 5.56, 26, 11.7387, 1.187], //ng/dL per mg
-            //tmax: [1.3875, 4.5, 1.0625, 1.5125, 10], // days
-            //bioavailability: [0.72, 0.7, 0.84, 0.65,0.65], // percentage
-            //AUC: [2588], //https://academic.oup.com/view-large/389646248
             esterData: ester_data,
             esterKey: 'tp_o',
-            steadyState: false,
+            //steadyState: false,
             drawPointTime: 0.1675,
+            bateman: false, // infer 3 compartment model if false
+            selectedPreset: "custom",
+            oldPreset: "notset",
+        },
+        studyPresets: {
+            presets: studyPresets
         },
         theme: localStorage.getItem('theme') || 'light',
         chart: null,  // Store the Chart.js instance here
@@ -36,6 +37,7 @@ function metaboliteApp() {
                 document.documentElement.dataset.theme = value;
                 localStorage.setItem('theme', value);
             });
+            this.restoreSettings();
         },
         getChartTheme() {
             return this.theme === 'dark'
@@ -55,10 +57,61 @@ function metaboliteApp() {
                     fill: 'rgba(78,59,68,0.25)'
                 };
         },
+        storeSettings() {
+            localStorage.setItem('metaboliteApp', JSON.stringify(this.settings));
+        },
+        restoreSettings() {
+            const data = JSON.parse(localStorage.getItem('metaboliteApp'));
+            console.log(data);
+            this.settings = data || this.settings;
+            this.settings.esterData = ester_data;
+            this.settings.selectedPreset = "pharmacokinetic_single_dose";
+            this.settings.oldPreset = "notset";
+        },
+        loadPreset() {
+
+            let preset = this.studyPresets.presets[this.settings.selectedPreset];
+            // custom mode?
+            if(this.settings.selectedPreset === "custom") {
+                this.settings.dose = this.settings.dose ?? 200;
+                this.settings.doseFrequency = this.settings.doseFrequency ?? 7;
+                this.settings.esterKey = this.settings.esterKey ?? 'tp_o';
+                this.settings.durationWeeks = this.settings.durationWeeks ?? 6;
+                this.settings.oldPreset = "notset";
+                return;
+            }
+            // invalid preset?
+            if (typeof preset === 'undefined' ) {return;}
+            // preset already loaded?
+            if (this.settings.oldPreset === this.settings.selectedPreset) {
+                if (this.settings.dose !== preset.dose) {
+                    this.settings.selectedPreset = "custom";
+                }
+                if (this.settings.doseFrequency !== preset.doseFrequency) {
+                    this.settings.selectedPreset = "custom";
+                }
+                if (this.settings.esterKey !== preset.ester_shortcode) {
+                    this.settings.selectedPreset = "custom";
+                }
+                if (this.settings.durationWeeks !== preset.durationWeeks) {
+                    this.settings.selectedPreset = "custom";
+                }
+                if (this.settings.oldPreset !== this.settings.selectedPreset) {
+                    this.settings.selectedPreset = "custom";
+                }
+                return;
+            }
+            this.settings.dose = preset.dose;
+            this.settings.doseFrequency = preset.doseFrequency;
+            this.settings.esterKey = preset.ester_shortcode;
+            this.settings.durationWeeks = preset.durationWeeks;
+            this.settings.oldPreset = this.settings.selectedPreset;
+        },
         updateChart() {
+            this.storeSettings();
+            this.loadPreset();
             // Calculate testosterone concentration with hysteresis
             // To ensure no variability in peak/trough rendering at long time intervals / frequent doses
-
             if (typeof (this.settings.startDateField) !== "undefined" ) {
                 const [year, month, day] = this.settings.startDateField.split('-').map(Number);
                 const date = new Date(year, month - 1, day);
@@ -94,8 +147,14 @@ function metaboliteApp() {
             let dose_interval_units = 'weeks';
             let dose_limit = (this.settings.durationWeeks * 7) / this.settings.doseFrequency;
             dose_limit = dose_limit.toFixed(0);
-            let steady_state = this.settings.steadyState;
-
+            let steady_state = false;
+            console.log(this.settings.esterKey);
+            console.log(ester);
+            console.log(this.settings.esterData);
+            if (typeof ester === "undefined") {
+                alert ("Invalid ester");
+                return;
+            }
             options.active_form = ester.active_form
             options.molecular_weight = active_form_data[options.active_form].molecular_weight;
 
@@ -139,6 +198,9 @@ function metaboliteApp() {
                     activeUnit = 'pg/mL';
                 }
             }
+
+            // I apologise for what I'm about to do here....
+            ester['params']['useBatemanOnly'] = this.settings.bateman;
 
             draw_point_time = this.settings.drawPointTime; // override here other wise autistic math breaks.
             let baseline = 0;
@@ -201,6 +263,18 @@ function metaboliteApp() {
                     this.chart.options.scales.y1.title.text = 'pg/mL';
 
                 }
+                this.chart.options.scales.y1.grid.drawOnChartArea = false;
+            } else if (ester['active_form'] === 'nandrolone') {
+                if (nmolNgDl === 'nmol') {
+                    this.chart.options.scales.y.title.text = 'nmol';
+                    this.chart.options.scales.y1.title.text = 'pmol';
+                    largeUnit = 'nmol';
+                    smallUnit = 'pmol';
+                } else if (nmolNgDl === 'ngdl') {
+                    this.chart.options.scales.y.title.text = 'ng/dL';
+                    this.chart.options.scales.y1.title.text = 'pg/mL';
+                }
+                this.chart.options.scales.y.display = true;
                 this.chart.options.scales.y1.grid.drawOnChartArea = false;
             } else {
                 // disable ngdl and nmol

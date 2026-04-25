@@ -9,6 +9,7 @@
     <script src="./scripts/calc-curve.js"></script>
     <script src="./scripts/bateman.js"></script>
     <script src="./scripts/chartSettings.js"></script>
+    <script src="./scripts/studyPresets.js"></script>
 
     <!-- Load Alpine.js -->
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@2.8.2/dist/alpine.min.js" defer></script>
@@ -301,6 +302,18 @@
                 </template>
             </select>
         </div>
+        <div class="field">
+            <label>Study preset</label>
+            <select x-model="settings.selectedPreset" @change="updateChart()">
+                <template x-for="[key, preset] in Object.entries(studyPresets.presets)" :key="key">
+                    <option
+                            :disabled="key === 'custom'"
+                            :value="key"
+                            x-text="preset.label">
+                    </option>
+                </template>
+            </select>
+        </div>
         <!-- Dose -->
         <div class="field">
             <label for="dose">Dose (mg):</label>
@@ -346,18 +359,22 @@
             </select>
         </div>
         <!-- Simulation -->
+        <div x-show="settings.esterData[settings.esterKey].active_form !== 'e2'">
         <div class="field">
-            <label>Simulation</label>
-
-            <select x-model="settings.steadyState">
-                <option value="true">steady state</option>
-                <option value="false">zero point</option>
+            <label>Plotter</label>
+            <select x-model="settings.bateman">
+                <option value="false">infer 3 compartment</option>
+                <option value="true">bateman</option>
             </select>
+        </div>
         </div>
         <!-- Draw Points -->
         <div class="field">
             <label for="dose">Draw points (per day):</label>
             <input type="number" id="dose" x-model.number="settings.drawPointTime" min=".005" step=".0125">
+        </div>
+        <div x-show="typeof(studyPresets.presets[settings.selectedPreset].source) !== 'undefined'">
+            <span ><a x-text="studyPresets.presets[settings.selectedPreset].label" :href="studyPresets.presets[settings.selectedPreset].source"></a></span>
         </div>
     </div>
 </div>

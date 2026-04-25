@@ -16,6 +16,11 @@ var active_form_data = {
         short_name: 'testosterone',
         molecular_weight: 288.42, // g/mol
     },
+    nandrolone: {
+        name: 'Nandrolone',
+        short_name: 'nandrolone',
+        molecular_weight: 274.404, // g/mol
+    },
 };
 
 // Ester data
@@ -123,6 +128,7 @@ var ester_data = {
             halflife: 1.0375,
             cMax: 26000,
             tMax: 1.0625,
+            useBatemanOnly: true,
         },
     },
     // source: https://www.sciencedirect.com/science/article/pii/S1262363626000261#sec0006
@@ -140,6 +146,7 @@ var ester_data = {
             halflife: 6.9,
             cMax: 11133.012, // 38.6 ± 10.3
             tMax: 4.5,
+            useBatemanOnly: true,
         },
     },
     ten: {
@@ -151,11 +158,12 @@ var ester_data = {
         ester_shortcode: 'ten',
         model: 'bateman',
         params: {
-            fit_dose: 100,
+            fit_dose: 200,
             bioavailability: .72,
             halflife: 7.19,
-            cMax: 865.26, // doubt this number //ngdl // 30 ± 8.3 nmol // devided by 10 because was for 100mg
+            cMax: 11309.5,
             tMax: 1.3875,
+            useBatemanOnly: true,
         },
     },
     tdec: {
@@ -172,6 +180,7 @@ var ester_data = {
             halflife: 21.3,
             cMax: 11738.694, // ?
             tMax: 1.5125,
+            useBatemanOnly: true,
         },
     },
     tun: {
@@ -188,6 +197,24 @@ var ester_data = {
             halflife: 53,
             cMax: 12113.64,// 42 nmol // devided by 100 because was for 1000mg
             tMax: 7,
+            useBatemanOnly: true,
+        },
+    },
+    ndec: {
+        name: 'Nandrolone decanoate',
+        short_name: 'TEdec',
+        dose_form: 'oil',
+        trace_label_format: '<name>',
+        active_form: 'nandrolone',
+        ester_shortcode: 'ndec',
+        model: 'bateman',
+        params: {
+            fit_dose: 100,
+            bioavailability: 0.72,
+            halflife: 8, // 100mg group
+            cMax: 426.00, // ?
+            tMax: 1.5125,
+            useBatemanOnly: true,
         },
     },
 };
