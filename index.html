@@ -377,6 +377,9 @@
             <span ><a x-text="studyPresets.presets[settings.selectedPreset].label" :href="studyPresets.presets[settings.selectedPreset].source"></a></span>
         </div>
     </div>
+    <div            x-init="onResize"
+            @resize.window="onResize"
+    >
 </div>
 
 </body>

@@ -107,6 +107,25 @@ function metaboliteApp() {
             this.settings.durationWeeks = preset.durationWeeks;
             this.settings.oldPreset = this.settings.selectedPreset;
         },
+        onResize() {
+            if (window.innerWidth < 600) {
+                this.chart.options.scales.x.ticks.display = false;
+                this.chart.options.scales.y.ticks.display = false;
+                this.chart.options.scales.y1.ticks.display = false;
+                this.chart.options.scales.x.title.display = true;
+                this.chart.options.scales.y.title.display = true;
+                this.chart.options.scales.y1.title.display = true;
+                this.chart.options.scales.y1.grid.display = false;
+            } else {
+                this.chart.options.scales.x.ticks.display = true;
+                this.chart.options.scales.y.ticks.display = true;
+                this.chart.options.scales.y1.ticks.display = true;
+                this.chart.options.scales.x.title.display = false;
+                this.chart.options.scales.y.title.display = false;
+                this.chart.options.scales.y1.title.display = false;
+                this.chart.options.scales.y1.grid.display = true;
+            }
+        },
         updateChart() {
             this.storeSettings();
             this.loadPreset();
@@ -320,6 +339,9 @@ function metaboliteApp() {
             esterModelDataset.label = ester['name'];
             esterModelMetaboliteDataset1.label = `E2`;
             esterModelMetaboliteDataset2.label = `DHT`;
+
+            // Window sizing logic
+            this.onResize();
 
             this.chart.data.datasets =[];
             this.chart.data.datasets.push(esterModelDataset);
