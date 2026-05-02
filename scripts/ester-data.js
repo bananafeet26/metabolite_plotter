@@ -200,30 +200,12 @@ var ester_data = {
             useBatemanOnly: true,
         },
     },
-    ten_v3c: {
-    name: 'Testosterone enanthate (v3c - Trans Men)',
-    short_name: 'ten_v3c',
-    dose_form: 'oil',
-    trace_label_format: '<name>',
-    active_form: 'test',
-    ester_shortcode: 'ten_v3c',
-    model: 'v3c',
-    params: {
-        bioavailability: 0.85,
-        /* V3C Parameters derived for 250mg dose */
-        fit_dose: 250,      // mg
-        D: 835.42,          // Scaled for Vd ~30L and peak concentration
-        k1: 0.6500,         // Fast absorption/hydrolysis phase
-        k2: 0.1540,         // Distribution phase (linked to T1/2)
-        k3: 0.1250,         // Terminal elimination "tail"
-    },
-   },
     TenTransMen: {
     name: 'Testosterone enanthate (Transgender Men)',
     short_name: 'TenTransMen',
     dose_form: 'oil',
     trace_label_format: '<name>',
-    active_form: 'test',
+    active_form: 'ftest',
     ester_shortcode: 'TenTransMen',
     model: 'bateman', // Using Bateman to utilize your existing Newton's method ka solver
     params: {
