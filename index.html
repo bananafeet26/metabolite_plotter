@@ -4,14 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Metabolite Plotter</title>
+    
     <script src="./scripts/app.js"></script>
     <script src="./scripts/ester-data.js"></script>
     <script src="./scripts/calc-curve.js"></script>
     <script src="./scripts/bateman.js"></script>
     <script src="./scripts/chartSettings.js"></script>
     <script src="./scripts/studyPresets.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@2.8.2/dist/alpine.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@^3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@^2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@^1"></script>
+
     <style>
         :root {
             --bg: #f4f4f9;
@@ -29,26 +33,24 @@
             --border: #474a57;
         }
 
-        /* Essential Reset for Overflows */
         * {
             box-sizing: border-box;
         }
 
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: var(--bg);
             color: var(--text);
             margin: 0;
             padding: 0;
-            min-height: 100vh;
         }
 
         .container {
             margin: 0 auto;
             padding: 15px;
-            max-width: 1200px;
+            max-width: 1000px;
             background-color: var(--panel);
-            min-height: 100vh;
+            min-height: 100vh; /* Ensures background covers full screen */
             display: flex;
             flex-direction: column;
         }
@@ -57,43 +59,48 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding-bottom: 8px;
+            padding-bottom: 10px;
             border-bottom: 1px solid var(--border);
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
 
         .title {
             margin: 0;
-            font-size: 1.25rem;
+            font-size: 1.2rem;
+            font-weight: 600;
         }
 
-        /* Chart Styling - Fixed Overflow */
+        /* Chart constraints */
         #myChart {
             width: 100% !important;
-            min-height: 50vh;
-            max-height: 60vh; /* Keeps chart contained on small screens */
+            height: 40vh !important; /* Forces chart to 40% of viewport height */
+            min-height: 300px; /* Safety for very small screens */
             background: var(--panel);
-            border-radius: 6px;
+            border-radius: 8px;
             margin-bottom: 20px;
         }
 
         h2 {
-            font-size: 18px;
-            margin: 10px 0;
+            font-size: 16px;
+            margin: 15px 0 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--muted);
         }
 
-        /* Form Layout */
+        /* Responsive Grid */
         .form-grid {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 10px;
+            gap: 12px;
+            padding-bottom: 30px;
         }
 
-        @media (min-width: 600px) {
+        @media (min-width: 650px) {
             .form-grid { grid-template-columns: repeat(2, 1fr); }
         }
 
-        @media (min-width: 950px) {
+        @media (min-width: 900px) {
             .form-grid { grid-template-columns: repeat(3, 1fr); }
         }
 
@@ -101,30 +108,30 @@
             display: grid;
             grid-template-columns: 110px 1fr;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
 
-        .field label {
+        label {
             font-size: 12px;
-            color: var(--muted);
-            font-weight: bold;
+            font-weight: 600;
         }
 
         input, select {
             width: 100%;
-            padding: 8px;
+            padding: 8px 10px;
             font-size: 14px;
             border-radius: 6px;
             border: 1px solid var(--border);
             background: var(--panel);
             color: var(--text);
+            outline: none;
         }
 
-        /* Toggle Switch */
-        .theme-toggle {
-            flex-shrink: 0;
+        input:focus, select:focus {
+            border-color: #4f46e5;
         }
 
+        /* Theme Toggle */
         .switch {
             position: relative;
             display: inline-block;
@@ -137,10 +144,10 @@
         .slider {
             position: absolute;
             cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
+            inset: 0;
             background-color: #ccc;
             transition: .4s;
-            border-radius: 24px;
+            border-radius: 34px;
         }
 
         .slider:before {
@@ -156,18 +163,16 @@
         input:checked + .slider { background-color: #4f46e5; }
         input:checked + .slider:before { transform: translateX(20px); }
 
-        .source-link {
+        .source-box {
             grid-column: 1 / -1;
+            padding: 8px;
+            background: rgba(79, 70, 229, 0.1);
+            border-radius: 4px;
             font-size: 12px;
-            margin-top: 5px;
         }
 
-        a { color: #4f46e5; text-decoration: none; }
+        a { color: #4f46e5; text-decoration: none; font-weight: bold; }
     </style>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@^3"></script>
-    <script src="https://cdn.jsdelivr.net/npm/moment@^2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@^1"></script>
 </head>
 <body>
 
@@ -186,7 +191,7 @@
 
     <canvas id="myChart"></canvas>
 
-    <h2>Settings</h2>
+    <h2>Simulation Settings</h2>
     <div class="form-grid" x-effect="updateChart()" x-on:change="updateChart()">
         
         <div class="field">
@@ -228,7 +233,7 @@
         </div>
 
         <div class="field" x-show="settings.esterData[settings.esterKey].active_form === 'test'">
-            <label>Age:</label>
+            <label>Age Group:</label>
             <select x-model="settings.age">
                 <option value="young">Young (18-36)</option>
                 <option value="old">Old (36+)</option>
@@ -244,7 +249,7 @@
         </div>
 
         <div class="field" x-show="settings.esterData[settings.esterKey].active_form !== 'e2'">
-            <label>Model:</label>
+            <label>Model Logic:</label>
             <select x-model="settings.bateman">
                 <option value="false">3-Compartment</option>
                 <option value="true">Bateman</option>
@@ -257,8 +262,8 @@
         </div>
 
         <template x-if="studyPresets.presets[settings.selectedPreset].source">
-            <div class="source-link">
-                Source: <a :href="studyPresets.presets[settings.selectedPreset].source" x-text="studyPresets.presets[settings.selectedPreset].label" target="_blank"></a>
+            <div class="source-box">
+                Reference: <a :href="studyPresets.presets[settings.selectedPreset].source" x-text="studyPresets.presets[settings.selectedPreset].label" target="_blank"></a>
             </div>
         </template>
     </div>
