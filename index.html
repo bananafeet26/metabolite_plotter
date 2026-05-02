@@ -3,179 +3,384 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Metabolite Plotter | Fixed Layout</title>
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
+    <title>Metabolite Plotter</title>
+    <script src="./scripts/app.js"></script>
     <script src="./scripts/ester-data.js"></script>
     <script src="./scripts/calc-curve.js"></script>
     <script src="./scripts/bateman.js"></script>
     <script src="./scripts/chartSettings.js"></script>
     <script src="./scripts/studyPresets.js"></script>
-    <script src="./scripts/app.js"></script>
-    
+
+    <!-- Load Alpine.js -->
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@2.8.2/dist/alpine.min.js" defer></script>
+    <style>
+        :root {
+            --bg: #f4f4f9;
+            --panel: #ffffff;
+            --text: #333;
+            --muted: #666;
+            --border: #ddd;
+        }
+
+        .dark {
+            --bg: #121212;
+            --panel: #302c2c;
+            --text: #e6e6e6;
+            --muted: #aaa;
+            --border: #474a57; /* 👈 better contrast than #333 */
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg-color: #1a1a1a;
+                --text-color: #e0e0e0;
+                --accent-color: #66b3ff;
+            }
+        }
+
+        /* General Body and Font Styling */
+        body {
+            font-family: 'Arial', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+        }
+
+        /* Container for the form */
+        .container {
+            margin: 0 auto;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            background-color: var(--panel);
+            height: 100vh;
+        }
+
+        /* Header Style */
+        h1 {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1, h2, label {
+            color: var(--text);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        /* When viewport gets wider */
+        @media (min-width: 600px) {
+            .form-grid {
+                grid-template-columns: repeat(2, 1fr); /* 2 columns */
+            }
+        }
+
+        @media (min-width: 900px) {
+            .form-grid {
+                grid-template-columns: repeat(3, 1fr); /* 3 columns */
+            }
+        }
+
+        .input-field label {
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .input-field input {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .toggle-group label {
+            font-weight: normal;
+            font-size: 16px;
+            color: #555;
+        }
+
+        .toggle-group input {
+            margin-right: 10px;
+        }
+
+        /* Radio buttons */
+        .toggle-group input[type="radio"] {
+            margin-right: 10px;
+        }
+
+        /* Chart Styling */
+        #myChart {
+            margin-top: 5px;
+            margin-bottom: 5px;
+            width: 100%; /* Ensures canvas stretches to fit container */
+            display: block; /* Ensure block display so it can take up the full width */
+            border-radius: 6px; /* Rounded corners for the chart */
+            background: var(--panel);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Shadow to match the form */
+            max-height: 60%;
+            height: 500px; /* Optional: Set a fixed height for the canvas */
+        }
+
+        /* Settings Display */
+        .settings-display {
+            background-color: var(--panel);
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+
+        .settings-display h2 {
+            font-size: 18px;
+            color: #444;
+        }
+
+        pre {
+            background-color: #e60000;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            overflow: auto;
+            color: #333;
+        }
+
+        .field {
+            display: grid;
+            grid-template-columns: 110px 1fr;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .field input,
+        .field select {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            color: var(--text);
+            width: 100%;
+            padding: 6px 8px;
+            font-size: 13px;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        label {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 6px 8px;
+            font-size: 13px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--panel);
+            color: var(--text);
+        }
+
+        /* POSITION TOP RIGHT */
+        .theme-toggle {
+            position: static;
+            flex-shrink: 0;
+        }
+
+        /* SWITCH WRAPPER */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 28px;
+        }
+
+        .switch input {
+            display: none;
+        }
+
+        /* TRACK */
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background-color: #ccc;
+            transition: .3s;
+            border-radius: 999px;
+        }
+
+        /* KNOB */
+        .slider:before {
+            content: "";
+            position: absolute;
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            top: 3px;
+            background: white;
+            transition: .3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        /* ACTIVE STATE */
+        input:checked + .slider {
+            background-color: #4f46e5;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .title {
+            margin: 0;
+            flex: 1;
+        }
+
+        .header-row h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+    </style>
+
+    <!-- Load Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@^3"></script>
     <script src="https://cdn.jsdelivr.net/npm/moment@^2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@^1"></script>
-
-    <style>
-        body { 
-            min-height: 100vh; 
-            margin: 0;
-            padding: 0;
-            background-color: #f8f9fa;
-        }
-        
-        [data-bs-theme="dark"] body { background-color: #121212; }
-
-        .full-width-container {
-            padding-left: 12px;
-            padding-right: 12px;
-            width: 100%;
-        }
-
-        /* THE FIX: The wrapper defines the height. 
-           The canvas is then forced to fill 100% of it.
-        */
-        .chart-container {
-            position: relative;
-            height: 45vh; /* Adjust this to change how tall the chart is */
-            min-height: 300px;
-            width: 100%;
-        }
-
-        #myChart {
-            width: 100% !important;
-            height: 100% !important;
-        }
-
-        .card { 
-            border-radius: 12px; 
-            border: none; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        }
-        
-        [data-bs-theme="dark"] .card { 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-            background-color: #1e1e1e;
-        }
-
-        .form-label-sm { font-size: 0.75rem; font-weight: 600; margin-bottom: 2px; }
-    </style>
 </head>
-<body x-data="metaboliteApp()" x-init="initializeChart(); updateChart(); $nextTick(() => { window.dispatchEvent(new Event('resize')); })" :data-bs-theme="theme">
+<body>
+<div class="container" x-data="metaboliteApp()" x-init="initializeChart(); updateChart();" :class="theme">
 
-<div class="container-fluid full-width-container py-3">
-    
-    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-        <h1 class="h5 mb-0 fw-bold" x-text="settings.esterData[settings.esterKey].name"></h1>
-        
-        <div class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" role="switch" id="themeSwitch"
-                   :checked="theme === 'dark'"
-                   @change="theme = $event.target.checked ? 'dark' : 'light'; localStorage.setItem('theme', theme); updateChart();">
-            <label class="form-check-label small text-muted" for="themeSwitch">Dark Mode</label>
+    <div class="header-row">
+        <h2 class="title">
+            <span x-text="settings.esterData[settings.esterKey].name"></span>
+        </h2>
+
+        <div class="theme-toggle">
+            <label class="switch">
+                <input type="checkbox"
+                       :checked="theme === 'dark'"
+                       @change="
+                        theme = $event.target.checked ? 'dark' : 'light';
+                       localStorage.setItem('theme', theme);
+                       updateChart();
+                        ">
+                <span class="slider"></span>
+            </label>
         </div>
     </div>
 
-    <div class="card mb-3 p-2">
-        <div class="chart-container">
-            <canvas id="myChart"></canvas>
+    <!-- Canvas for Chart.js -->
+    <canvas style="height:400px" id="myChart"></canvas>
+
+    <h2>Adjust Settings</h2>
+    <div class="form-grid" x-effect="updateChart()" x-on:change="updateChart()">
+        <!-- Select compound -->
+        <div class="field">
+            <label for="dose">Ester:</label>
+            <select x-model="settings.esterKey">
+                <template x-for="[key, ester] in Object.entries(settings.esterData)" :key="key">
+                    <option
+                            :value="key"
+                            :selected="settings.esterKey === key"
+                            x-text="ester.name">
+                    </option>
+                </template>
+            </select>
+        </div>
+        <div class="field">
+            <label>Study preset</label>
+            <select x-model="settings.selectedPreset" @change="updateChart()">
+                <template x-for="[key, preset] in Object.entries(studyPresets.presets)" :key="key">
+                    <option
+                            :disabled="key === 'custom'"
+                            :value="key"
+                            x-text="preset.label">
+                    </option>
+                </template>
+            </select>
+        </div>
+        <!-- Dose -->
+        <div class="field">
+            <label for="dose">Dose (mg):</label>
+            <input type="number" id="dose" x-model.number="settings.dose" min="0" step="5"
+                   placeholder="Enter dose in mg"
+            >
+        </div>
+        <!-- Start Date -->
+        <div class="field">
+            <label for="startDateField">Start Date:</label>
+            <input type="date" id="startDateField" x-model="settings.startDateField">
+        </div>
+        <!-- Dose Frequency -->
+        <div class="field">
+            <label for="doseFrequency">Interval (days):</label>
+            <input type="number" id="doseFrequency" x-model.number="settings.doseFrequency" min="1" step="1"
+                   placeholder="Enter dose frequency in days">
+        </div>
+        <!-- Duration (Weeks) -->
+        <div class="field">
+            <label>Duration (weeks)</label>
+            <input type="number"
+                   x-model.number="settings.durationWeeks"
+                   min="1">
+        </div>
+        <!-- Toggle nmol/ng/dl -->
+        <div x-show="settings.esterData[settings.esterKey].active_form === 'test'">
+            <div class="field">
+                <label>Age:</label>
+                <select x-model="settings.age">
+                    <option value="young">young (18-36)</option>
+                    <option value="old">old (36+)</option>
+                </select>
+            </div>
+        </div>
+        <!-- Toggle nmol/ng/dl -->
+        <div class="field">
+            <label>Units</label>
+
+            <select x-model="settings.nmolNgDl">
+                <option value="nmol">nmol/L</option>
+                <option value="ngdl">ng/dL</option>
+            </select>
+        </div>
+        <!-- Simulation -->
+        <div x-show="settings.esterData[settings.esterKey].active_form !== 'e2'">
+        <div class="field">
+            <label>Plotter</label>
+            <select x-model="settings.bateman">
+                <option value="false">infer 3 compartment</option>
+                <option value="true">bateman</option>
+            </select>
+        </div>
+        </div>
+        <!-- Draw Points -->
+        <div class="field">
+            <label for="dose">Draw points (per day):</label>
+            <input type="number" id="dose" x-model.number="settings.drawPointTime" min=".005" step=".0125">
+        </div>
+        <div x-show="typeof(studyPresets.presets[settings.selectedPreset].source) !== 'undefined'">
+            <span ><a x-text="studyPresets.presets[settings.selectedPreset].label" :href="studyPresets.presets[settings.selectedPreset].source"></a></span>
         </div>
     </div>
-
-    <div class="card p-3">
-        <h2 class="h6 mb-3 text-uppercase fw-bold text-secondary">Simulation Settings</h2>
-        
-        <div class="row g-3" x-effect="updateChart()" x-on:change="updateChart()">
-            
-            <div class="col-md-4 col-sm-6">
-                <label class="form-label-sm">Ester</label>
-                <select class="form-select form-select-sm" x-model="settings.esterKey">
-                    <template x-for="[key, ester] in Object.entries(settings.esterData)" :key="key">
-                        <option :value="key" :selected="settings.esterKey === key" x-text="ester.name"></option>
-                    </template>
-                </select>
-            </div>
-
-            <div class="col-md-4 col-sm-6">
-                <label class="form-label-sm">Study Preset</label>
-                <select class="form-select form-select-sm" x-model="settings.selectedPreset">
-                    <template x-for="[key, preset] in Object.entries(studyPresets.presets)" :key="key">
-                        <option :disabled="key === 'custom'" :value="key" x-text="preset.label"></option>
-                    </template>
-                </select>
-            </div>
-
-            <div class="col-md-4 col-sm-6">
-                <label class="form-label-sm">Dose (mg)</label>
-                <input type="number" class="form-control form-control-sm" x-model.number="settings.dose" min="0" step="5">
-            </div>
-
-            <div class="col-md-4 col-sm-6">
-                <label class="form-label-sm">Start Date</label>
-                <input type="date" class="form-control form-control-sm" x-model="settings.startDateField">
-            </div>
-
-            <div class="col-md-4 col-sm-6">
-                <label class="form-label-sm">Interval (Days)</label>
-                <input type="number" class="form-control form-control-sm" x-model.number="settings.doseFrequency" min="1">
-            </div>
-
-            <div class="col-md-4 col-sm-6">
-                <label class="form-label-sm">Duration (Weeks)</label>
-                <input type="number" class="form-control form-control-sm" x-model.number="settings.durationWeeks" min="1">
-            </div>
-
-            <template x-if="settings.esterData[settings.esterKey].active_form === 'test'">
-                <div class="col-md-4 col-sm-6">
-                    <label class="form-label-sm">Age Cohort</label>
-                    <select class="form-select form-select-sm" x-model="settings.age">
-                        <option value="young">Young (18-36)</option>
-                        <option value="old">Old (36+)</option>
-                    </select>
-                </div>
-            </template>
-
-            <div class="col-md-4 col-sm-6">
-                <label class="form-label-sm">Display Units</label>
-                <select class="form-select form-select-sm" x-model="settings.nmolNgDl">
-                    <option value="nmol">nmol/L</option>
-                    <option value="ngdl">ng/dL</option>
-                </select>
-            </div>
-
-            <template x-if="settings.esterData[settings.esterKey].active_form !== 'e2'">
-                <div class="col-md-4 col-sm-6">
-                    <label class="form-label-sm">Kinetic Model</label>
-                    <select class="form-select form-select-sm" x-model="settings.bateman">
-                        <option value="false">3-Compartment Infer</option>
-                        <option value="true">Bateman Equation</option>
-                    </select>
-                </div>
-            </template>
-
-            <div class="col-md-4 col-sm-6">
-                <label class="form-label-sm">Step Size</label>
-                <input type="number" class="form-control form-control-sm" x-model.number="settings.drawPointTime" min=".005" step=".0125">
-            </div>
-
-            <template x-if="studyPresets.presets[settings.selectedPreset].source">
-                <div class="col-12">
-                    <div class="alert alert-info py-2 px-3 mb-0 small mt-2">
-                        <strong>Source:</strong> 
-                        <a :href="studyPresets.presets[settings.selectedPreset].source" 
-                           class="alert-link text-decoration-none" 
-                           target="_blank" 
-                           x-text="studyPresets.presets[settings.selectedPreset].label"></a>
-                    </div>
-                </div>
-            </template>
-        </div>
-    </div>
+    <div            x-init="onResize"
+            @resize.window="onResize"
+    >
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
