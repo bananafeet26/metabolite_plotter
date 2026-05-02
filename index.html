@@ -28,12 +28,16 @@
         }
         
         /* Forces the chart to take up full available width and 45% height */
-        .chart-container { 
-            position: relative; 
-            height: 45vh; 
-            min-height: 350px; 
-            width: 100%;
-        }
+        /* Chart Styling */
+#myChart {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    width: 80%; /* Ensures canvas stretches to fit container */
+    display: block; /* Ensure block display so it can take up the full width */
+    border-radius: 6px; /* Rounded corners for the chart */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Shadow to match the form */
+    max-height: 40%;
+}
 
         /* Removes the default padding from the container-fluid if you want true edge-to-edge */
         .full-width-container {
@@ -70,9 +74,9 @@
     </div>
 
     <div class="card mb-3 p-2">
-        <div class="chart-container">
-            <canvas id="myChart"></canvas>
-        </div>
+    
+            <canvas style="max-height: 45vh" id="myChart"></canvas>
+    
     </div>
 
     <div class="card p-3">
