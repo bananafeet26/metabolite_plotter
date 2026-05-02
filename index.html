@@ -26,17 +26,21 @@
             margin: 0;
             padding: 0;
         }
-        
-        /* Forces the chart to take up full available width and 45% height */
-        /* Chart Styling */
-#myChart {
-    margin-top: 5px;
-    margin-bottom: 5px;
-    width: 100%; /* Ensures canvas stretches to fit container */
-    border-radius: 6px; /* Rounded corners for the chart */
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Shadow to match the form */
+
+        /* Ensure the card container has a layout context */
+.card-chart-container {
+    position: relative;
+    width: 100%;
+    /* You can adjust this height to your liking */
+    height: 50vh; 
+    min-height: 300px;
 }
 
+#myChart {
+    /* Remove fixed widths/heights here; Chart.js handles this via responsiveness */
+    display: block;
+
+}
         /* Removes the default padding from the container-fluid if you want true edge-to-edge */
         .full-width-container {
             padding-left: 10px;
@@ -70,12 +74,12 @@
             <label class="form-check-label small text-muted" for="themeSwitch">Dark Mode</label>
         </div>
     </div>
-
-    <div style="min-height:50vh" class="card mb-3 p-2">
-    
-            <canvas style="max-height: 60vh" id="myChart"></canvas>
-    
+<div class="card mb-3 p-2">
+    <div class="card-chart-container">
+        <canvas id="myChart"></canvas>
     </div>
+</div>
+
 
     <div class="card p-3">
         <h2 class="h6 mb-3 text-uppercase fw-bold text-secondary">Simulation Settings</h2>
