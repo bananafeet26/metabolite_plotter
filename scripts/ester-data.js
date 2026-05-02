@@ -210,7 +210,7 @@ var ester_data = {
     short_name: 'TenTransMen',
     dose_form: 'oil',
     trace_label_format: '<name>',
-    active_form: 'ftest',
+    active_form: 'test',
     ester_shortcode: 'TenTransMen',
     model: 'bateman', // Using Bateman to utilize your existing Newton's method ka solver
     params: {
@@ -219,7 +219,8 @@ var ester_data = {
         halflife: 4.5,          // Adjusted terminal half-life from Ichihara et al.
         cMax: 29400.0,          // High peak (~29.4 ng/mL) typical for AFAB baseline
         tMax: 1.7,              // Mean peak time from study
-        useBatemanOnly: true,
+        useBatemanOnly: true, // todo add if clause
+        disableMetabolites: true,
     },
 },
     ndec: {
