@@ -16,6 +16,11 @@ var active_form_data = {
         short_name: 'testosterone',
         molecular_weight: 288.42, // g/mol
     },
+    ftest: {
+        name: 'Testosterone (female)',
+        short_name: 'ftestosterone',
+        molecular_weight: 288.42, // g/mol
+    },
     nandrolone: {
         name: 'Nandrolone',
         short_name: 'nandrolone',
