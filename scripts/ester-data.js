@@ -16,11 +16,6 @@ var active_form_data = {
         short_name: 'testosterone',
         molecular_weight: 288.42, // g/mol
     },
-    ftest: {
-        name: 'Testosterone (female)',
-        short_name: 'ftestosterone',
-        molecular_weight: 288.42, // g/mol
-    },
     nandrolone: {
         name: 'Nandrolone',
         short_name: 'nandrolone',
@@ -171,6 +166,24 @@ var ester_data = {
             useBatemanOnly: true,
         },
     },
+    tenwoman: {
+        name: 'Testosterone enanthate (in women)',
+        short_name: 'TEwomen',
+        dose_form: 'oil',
+        trace_label_format: '<name>',
+        active_form: 'test',
+        ester_shortcode: 'tenwoman',
+        model: 'bateman', // Using Bateman to utilize your existing Newton's method ka solver
+        params: {
+            fit_dose: 250,          // Based on the standard 250mg study dose
+            bioavailability: 0.85,  // Slightly higher effective bioavailability due to lower Vd
+            halflife: 4.5,          // Adjusted terminal half-life from Ichihara et al.
+            cMax: 29400.0,          // High peak (~29.4 ng/mL) typical for AFAB baseline
+            tMax: 1.7,              // Mean peak time from study
+            useBatemanOnly: true, // todo add if clause
+            disableMetabolites: true,
+        },
+    },
     tdec: {
         name: 'Testosterone decanoate',
         short_name: 'TEdec',
@@ -205,24 +218,6 @@ var ester_data = {
             useBatemanOnly: true,
         },
     },
-    TenTransMen: {
-    name: 'Testosterone enanthate (Transgender Men)',
-    short_name: 'TenTransMen',
-    dose_form: 'oil',
-    trace_label_format: '<name>',
-    active_form: 'test',
-    ester_shortcode: 'TenTransMen',
-    model: 'bateman', // Using Bateman to utilize your existing Newton's method ka solver
-    params: {
-        fit_dose: 250,          // Based on the standard 250mg study dose
-        bioavailability: 0.85,  // Slightly higher effective bioavailability due to lower Vd
-        halflife: 4.5,          // Adjusted terminal half-life from Ichihara et al.
-        cMax: 29400.0,          // High peak (~29.4 ng/mL) typical for AFAB baseline
-        tMax: 1.7,              // Mean peak time from study
-        useBatemanOnly: true, // todo add if clause
-        disableMetabolites: true,
-    },
-},
     ndec: {
         name: 'Nandrolone decanoate',
         short_name: 'TEdec',

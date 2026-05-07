@@ -72,7 +72,7 @@ function metaboliteApp() {
 
             let preset = this.studyPresets.presets[this.settings.selectedPreset];
             // custom mode?
-            if(this.settings.selectedPreset === "custom") {
+            if (this.settings.selectedPreset === "custom") {
                 this.settings.dose = this.settings.dose ?? 200;
                 this.settings.doseFrequency = this.settings.doseFrequency ?? 7;
                 this.settings.esterKey = this.settings.esterKey ?? 'tp_o';
@@ -81,7 +81,9 @@ function metaboliteApp() {
                 return;
             }
             // invalid preset?
-            if (typeof preset === 'undefined' ) {return;}
+            if (typeof preset === 'undefined') {
+                return;
+            }
             // preset already loaded?
             if (this.settings.oldPreset === this.settings.selectedPreset) {
                 if (this.settings.dose !== preset.dose) {
@@ -106,6 +108,36 @@ function metaboliteApp() {
             this.settings.esterKey = preset.ester_shortcode;
             this.settings.durationWeeks = preset.durationWeeks;
             this.settings.oldPreset = this.settings.selectedPreset;
+
+        },
+        graphPresetData() {
+            let preset = this.studyPresets.presets[this.settings.selectedPreset];
+            if (typeof preset.study_data_set === "undefined") {
+                console.log("no data");
+                return;
+            }
+            console.log(preset.study_data_set);
+            let studyDataSet = {
+                label: `${preset.label}`,
+                data: [],  // Initial data
+                yAxisID: 'y',
+                xAxisID: 'x',
+                borderColor: 'black',
+                hidden: false,
+                fill: false
+            }
+            for (let i = 0; i < preset.study_data_set.length; i++) {
+                let date = new Date(this.settings.startDate);
+                let yDatum = preset.study_data_set[i].total_t;
+                if (this.settings.nmolNgDl === "nmol") {
+                    yDatum = convert_concentration_units(preset.study_data_set[i].total_t, "ng/dL", "nmol/L", preset.molecular_weight);
+                }
+                date.setDate(date.getDate() + preset.study_data_set[i].day);
+                let set = {x: date, y: yDatum};
+                studyDataSet.data.push(set);
+            }
+            this.chart.data.datasets.push(studyDataSet);
+            this.chart.update();
         },
         onResize() {
             if (window.innerWidth < 600) {
@@ -131,7 +163,7 @@ function metaboliteApp() {
             this.loadPreset();
             // Calculate testosterone concentration with hysteresis
             // To ensure no variability in peak/trough rendering at long time intervals / frequent doses
-            if (typeof (this.settings.startDateField) !== "undefined" ) {
+            if (typeof (this.settings.startDateField) !== "undefined") {
                 const [year, month, day] = this.settings.startDateField.split('-').map(Number);
                 const date = new Date(year, month - 1, day);
                 this.settings.startDate = date;
@@ -171,7 +203,7 @@ function metaboliteApp() {
             console.log(ester);
             console.log(this.settings.esterData);
             if (typeof ester === "undefined") {
-                alert ("Invalid ester");
+                alert("Invalid ester");
                 return;
             }
             options.active_form = ester.active_form
@@ -310,14 +342,14 @@ function metaboliteApp() {
                 this.chart.options.scales.y1.grid.drawOnChartArea = true;
             }
             if (nmolNgDl === 'nmol') {
-                this.chart.options.plugins.tooltip.callbacks.label = this.chart.options.plugins.tooltip.callbacks.label = function(context) {
-                    const { dataset, parsed } = context;
+                this.chart.options.plugins.tooltip.callbacks.label = this.chart.options.plugins.tooltip.callbacks.label = function (context) {
+                    const {dataset, parsed} = context;
                     const value = parsed.y;
 
                     return `${dataset.label}: ${Math.floor(value)} ${dataset.unit || ''}`;
                 };
-                this.chart.options.plugins.tooltip.callbacks.label = function(context) {
-                    const { dataset, parsed, chart } = context;
+                this.chart.options.plugins.tooltip.callbacks.label = function (context) {
+                    const {dataset, parsed, chart} = context;
                     const value = parsed.y;
 
                     const axisId = dataset.yAxisID;
@@ -329,10 +361,10 @@ function metaboliteApp() {
                 };
 
             }
-            this.chart.options.scales.y.ticks.callback = function(value, index, values) {
+            this.chart.options.scales.y.ticks.callback = function (value, index, values) {
                 return value + ` ${largeUnit}`;
             };
-            this.chart.options.scales.y1.ticks.callback = function(value, index, values) {
+            this.chart.options.scales.y1.ticks.callback = function (value, index, values) {
                 return value + ` ${smallUnit}`;
             };
             esterModelDataset.data = curve_data;
@@ -343,7 +375,7 @@ function metaboliteApp() {
             // Window sizing logic
             this.onResize();
 
-            this.chart.data.datasets =[];
+            this.chart.data.datasets = [];
             this.chart.data.datasets.push(esterModelDataset);
             if (ester['active_form'] === 'test') {
                 this.chart.data.datasets.push(esterModelMetaboliteDataset1);
@@ -361,6 +393,11 @@ function metaboliteApp() {
             this.chart.options.scales.y.ticks.color = t.text;
             this.chart.options.scales.y1.ticks.color = t.text;
 
+
+            // custom mode?
+            if (this.settings.selectedPreset !== "custom") {
+                this.graphPresetData();
+            }
             this.chart.update();  // Redraw the chart
         },
     }

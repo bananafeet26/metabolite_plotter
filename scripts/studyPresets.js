@@ -40,5 +40,27 @@ var studyPresets = {
         "bateman": false,
         "notes": "Pharmacokinetic Profile of Subcutaneous Testosterone Enanthate Delivered via a Novel, Prefilled Single‐Use Autoinjector: A Phase II Study",
         "source": "https://doi.org/10.1002/sm2.80",
-    }
+    },
+    "testewomen": {
+        "label": "Pharmacokinetics of Testosterone Enanthate In Women",
+        "ester_shortcode": "tenwoman",
+        "dose": 250,
+        "doseFrequency": 60,
+        "durationWeeks": 4,
+        "bateman": false,
+        "notes": "Pharmacokinetics of Testosterone Enanthate After Intramuscular Injection for Transgender Men",
+        "source": "https://doi.org/10.1089/andro.2020.0002",
+        "study_data_set": [
+            { day: 0, total_t: 75, sd: 50},
+            { day: 1, total_t: 2799, sd: 1750},
+            { day: 2, total_t: 2169, sd: 960},
+            { day: 3, total_t: 2333, sd: 1580},
+            { day: 7, total_t: 1448, sd: 470},
+            { day: 14, total_t: 581, sd: 240},
+            { day: 21, total_t: 272, sd: 160},
+            { day: 28, total_t: 130, sd: 80},
+
+        ],
+        "molecular_weight": 288.42
+    },
 }
