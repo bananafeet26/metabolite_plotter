@@ -231,7 +231,7 @@ var ester_data = {
             bioavailability: 0.72,
             halflife: 8, // 100mg group
             cMax: 426.00, // ?
-            tMax: 1.5125,
+            tMax: 1.25, // 30 hrs
             useBatemanOnly: true,
         },
     },
