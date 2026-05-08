@@ -66,6 +66,24 @@ var chartSettings = {
                         return `${dataset.label}: ${Math.floor(value)} ${unit} ng/dL`;
                     }
                 }
+            },
+            annotation: {
+                annotations: {
+                    avgLine: {
+                        type: 'line',
+                        scaleID: 'y',
+                        value: 0,
+
+                        borderColor: 'black',
+                        borderDash: [6, 6],
+                        borderWidth: 3,
+
+                        label: {
+                            display: true,
+                            content: `Average:`
+                        }
+                    }
+                }
             }
         }
     },

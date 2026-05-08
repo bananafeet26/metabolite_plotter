@@ -37,7 +37,12 @@ function metaboliteApp() {
                 document.documentElement.dataset.theme = value;
                 localStorage.setItem('theme', value);
             });
+            Chart.register(window['chartjs-plugin-annotation']);
             this.restoreSettings();
+        },
+        average() {
+            const values = this.chart.data.datasets[0].data;
+            return values.reduce((a, b) => a + b, 0) / values.length;
         },
         getChartTheme() {
             return this.theme === 'dark'
@@ -398,7 +403,34 @@ function metaboliteApp() {
             if (this.settings.selectedPreset !== "custom") {
                 this.graphPresetData();
             }
+            //averages
+            let dataset = this.chart.data.datasets[0];
+            let sum = 0;
+            for (let j = 0; j < dataset.data.length; j++) {
+                sum += dataset.data[j].y;
+            }
+            let avg = sum / dataset.data.length;
+            dataset.average = avg;
+            console.log(` sum: ${sum} avg: ${avg} dataset.data.length: ${dataset.data.length}`)
+
+            this.chart.options.plugins.annotation.annotations.avgLine = {
+                type: 'line',
+                scaleID: 'y',
+                value: avg,
+
+                borderColor: 'black',
+                borderDash: [6, 6],
+                borderWidth: 2,
+
+                label: {
+                    enabled: true,
+                    content: `Average: ${avg.toFixed(2)}`,
+                    position: 'end'
+                }
+            };
             this.chart.update();  // Redraw the chart
+
+
         },
     }
 }
