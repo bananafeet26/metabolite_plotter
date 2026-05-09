@@ -11,8 +11,14 @@ function calc_curve(time_interval, draw_point_time, baseline, dose, dose_interva
     }
     var curve_data = [];
 
-    var prev_doses = steady_state ? calc_steady_doses(model, params, dose_interval, dose) : 0;
-
+    if (steady_state) {
+    }
+    var prev_doses = 0;
+    console.log(`Steady state: ${steady_state}`);
+    if (steady_state === "true") {
+        console.log(`Steady state enabled: ${steady_state}`);
+        prev_doses =calc_steady_doses(model, params, dose_interval)
+    }
     for (let t = 0; t <= time_interval; t += draw_point_time) {
         let num_doses = 1;
         if (multi_dose) {
@@ -30,6 +36,7 @@ function calc_curve(time_interval, draw_point_time, baseline, dose, dose_interva
         var msToAdd = t * 24 * 60 * 60 * 1000;
         let date = new Date(startDate.getTime() + msToAdd);
 
+        if (C <0) C =0;
         let curve_datum = {
             x: date,
             y: convert_concentration_units(C, 'pg/mL', nmolNgDl, molecularWeight),
@@ -42,7 +49,7 @@ function calc_curve(time_interval, draw_point_time, baseline, dose, dose_interva
     return curve_data;
 }
 
-function calc_steady_doses(model, params, dose_interval, dose) {
+function calc_steady_doses(model, params, dose_interval) {
     var acceptable_error = 0.0001;
     var maximum_doses = 1000;
     var doses = 0;
@@ -53,7 +60,8 @@ function calc_steady_doses(model, params, dose_interval, dose) {
         if ((new_trough - trough) / trough < acceptable_error) break;
         trough = new_trough;
     }
-
+    console.log(`Steady state reached after ${doses} doses, trough ${trough}`);
+    console.log(doses);
     if (doses == maximum_doses) {
         alert('Steady state not reached by 1000 doses. Graph starts after 1000 doses previous.');
     }

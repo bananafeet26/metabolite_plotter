@@ -6,6 +6,7 @@ var chartSettings = {
     },
     options: {
         responsive: true,
+        maintainAspectRatio: false,
         scales: {
             x: {
                 type: 'time',  // Use timescale

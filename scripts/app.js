@@ -9,12 +9,14 @@ function metaboliteApp() {
             age: 'young',
             nmolNgDl: 'ngdl',
             esterData: ester_data,
-            esterKey: 'tp_o',
+            esterKey: 7,
             //steadyState: false,
             drawPointTime: 0.1675,
             bateman: false, // infer 3 compartment model if false
             selectedPreset: "custom",
             oldPreset: "notset",
+            steadyStateMode: false,
+            doses: 1,
         },
         studyPresets: {
             presets: studyPresets
@@ -203,10 +205,6 @@ function metaboliteApp() {
             let dose_interval_units = 'weeks';
             let dose_limit = (this.settings.durationWeeks * 7) / this.settings.doseFrequency;
             dose_limit = dose_limit.toFixed(0);
-            let steady_state = false;
-            console.log(this.settings.esterKey);
-            console.log(ester);
-            console.log(this.settings.esterData);
             if (typeof ester === "undefined") {
                 alert("Invalid ester");
                 return;
@@ -261,7 +259,7 @@ function metaboliteApp() {
             draw_point_time = this.settings.drawPointTime; // override here other wise autistic math breaks.
             let baseline = 0;
             let curve_data = calc_curve(time_interval, draw_point_time, baseline, dose, dose_interval, multi_dose,
-                dose_limit, steady_state, ester['model'], ester['params'], this.settings.startDate, activeUnit, active_form_data[ester['active_form']].molecular_weight);
+                dose_limit, this.settings.steadyStateMode, ester['model'], ester['params'], this.settings.startDate, activeUnit, active_form_data[ester['active_form']].molecular_weight);
 
             let esterModelMetaboliteDataset1 = {
                 label: 'DHT',
@@ -299,6 +297,8 @@ function metaboliteApp() {
                 if (ester['active_form'] === 'test') {
                     // expect ngdl and returns ngdl units....
                     let [E2, DHT] = calculateDHTE2(this.settings.age, curve_data[i].y, nmolNgDl);
+                    if (E2 < 0) E2 = 0;
+                    if (DHT < 0) DHT = 0;
                     esterModelMetaboliteDataset1.data[i] = E2;
                     esterModelMetaboliteDataset2.data[i] = DHT;
                 } else if ((ester['active_form'] === 'e2')) {
@@ -428,6 +428,15 @@ function metaboliteApp() {
                     position: 'end'
                 }
             };
+            console.log(this.settings.esterKey);
+
+            let doses = this.settings.durationWeeks*7 / (this.settings.doseFrequency)
+            console.log(doses);
+            if (doses > 1) {
+                this.settings.doses = doses.toFixed(0);
+            } else {
+                this.settings.doses =1;
+            }
             this.chart.update();  // Redraw the chart
 
 

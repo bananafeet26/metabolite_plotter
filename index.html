@@ -3,384 +3,238 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Metabolite Plotter</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Hormone and Metabolite Plotter</title>
+
+    <!-- Load Alpine.js -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@2.8.2/dist/alpine.min.js" defer></script>
     <script src="./scripts/app.js"></script>
     <script src="./scripts/ester-data.js"></script>
     <script src="./scripts/calc-curve.js"></script>
     <script src="./scripts/bateman.js"></script>
     <script src="./scripts/chartSettings.js"></script>
     <script src="./scripts/studyPresets.js"></script>
-
-    <!-- Load Alpine.js -->
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@2.8.2/dist/alpine.min.js" defer></script>
-    <style>
-        :root {
-            --bg: #f4f4f9;
-            --panel: #ffffff;
-            --text: #333;
-            --muted: #666;
-            --border: #ddd;
-        }
-
-        .dark {
-            --bg: #121212;
-            --panel: #302c2c;
-            --text: #e6e6e6;
-            --muted: #aaa;
-            --border: #474a57; /* 👈 better contrast than #333 */
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root:not([data-theme="light"]) {
-                --bg-color: #1a1a1a;
-                --text-color: #e0e0e0;
-                --accent-color: #66b3ff;
-            }
-        }
-
-        /* General Body and Font Styling */
-        body {
-            font-family: 'Arial', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            margin: 0;
-        }
-
-        /* Container for the form */
-        .container {
-            margin: 0 auto;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            background-color: var(--panel);
-            height: 100vh;
-        }
-
-        /* Header Style */
-        h1 {
-            font-size: 24px;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        h1, h2, label {
-            color: var(--text);
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-        }
-
-        /* When viewport gets wider */
-        @media (min-width: 600px) {
-            .form-grid {
-                grid-template-columns: repeat(2, 1fr); /* 2 columns */
-            }
-        }
-
-        @media (min-width: 900px) {
-            .form-grid {
-                grid-template-columns: repeat(3, 1fr); /* 3 columns */
-            }
-        }
-
-        .input-field label {
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #555;
-        }
-
-        .input-field input {
-            padding: 10px;
-            font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        .toggle-group label {
-            font-weight: normal;
-            font-size: 16px;
-            color: #555;
-        }
-
-        .toggle-group input {
-            margin-right: 10px;
-        }
-
-        /* Radio buttons */
-        .toggle-group input[type="radio"] {
-            margin-right: 10px;
-        }
-
-        /* Chart Styling */
-        #myChart {
-            margin-top: 5px;
-            margin-bottom: 5px;
-            width: 100%; /* Ensures canvas stretches to fit container */
-            display: block; /* Ensure block display so it can take up the full width */
-            border-radius: 6px; /* Rounded corners for the chart */
-            background: var(--panel);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Shadow to match the form */
-            max-height: 60%;
-            height: 500px; /* Optional: Set a fixed height for the canvas */
-        }
-
-        /* Settings Display */
-        .settings-display {
-            background-color: var(--panel);
-            border-radius: 6px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            margin-top: 20px;
-        }
-
-        .settings-display h2 {
-            font-size: 18px;
-            color: #444;
-        }
-
-        pre {
-            background-color: #e60000;
-            padding: 15px;
-            border-radius: 6px;
-            font-size: 14px;
-            overflow: auto;
-            color: #333;
-        }
-
-        .field {
-            display: grid;
-            grid-template-columns: 110px 1fr;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
-        }
-
-        .field input,
-        .field select {
-            background: var(--panel);
-            border: 1px solid var(--border);
-            color: var(--text);
-            width: 100%;
-            padding: 6px 8px;
-            font-size: 13px;
-            border-radius: 6px;
-            box-sizing: border-box;
-        }
-
-        label {
-            font-size: 12px;
-            color: var(--muted);
-        }
-
-        input, select {
-            width: 100%;
-            padding: 6px 8px;
-            font-size: 13px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-            background: var(--panel);
-            color: var(--text);
-        }
-
-        /* POSITION TOP RIGHT */
-        .theme-toggle {
-            position: static;
-            flex-shrink: 0;
-        }
-
-        /* SWITCH WRAPPER */
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 52px;
-            height: 28px;
-        }
-
-        .switch input {
-            display: none;
-        }
-
-        /* TRACK */
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            inset: 0;
-            background-color: #ccc;
-            transition: .3s;
-            border-radius: 999px;
-        }
-
-        /* KNOB */
-        .slider:before {
-            content: "";
-            position: absolute;
-            height: 22px;
-            width: 22px;
-            left: 3px;
-            top: 3px;
-            background: white;
-            transition: .3s;
-            border-radius: 50%;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-        }
-
-        /* ACTIVE STATE */
-        input:checked + .slider {
-            background-color: #4f46e5;
-        }
-
-        input:checked + .slider:before {
-            transform: translateX(24px);
-        }
-
-        .header-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-            padding-bottom: 8px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .title {
-            margin: 0;
-            flex: 1;
-        }
-
-        .header-row h2 {
-            margin: 0;
-            font-size: 20px;
-        }
-    </style>
-
     <!-- Load Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@^3"></script>
     <script src="https://cdn.jsdelivr.net/npm/moment@^2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@^1"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1"></script>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <style>
+    </style>
 </head>
 <body>
-<div class="container" x-data="metaboliteApp()" x-init="initializeChart(); updateChart();" :class="theme">
+<div class="container-fluid" x-data="metaboliteApp()" x-init="initializeChart(); updateChart();" :class="theme">
+    <h2 class="title text-center">
+        <span>Hormone and Metabolite Plotter</span>
+    </h2>
+    <!-------------------------------------- Graphing System Col ------------------------------------------->
+    <div class="row" x-effect="updateChart()" x-on:change="updateChart()">
+        <div class="col-12 col-md-8 col-lg-8 col-xl-9" style="height: 65vh">
+            <div class="border rounded h-100 d-flex flex-column">
 
-    <div class="header-row">
-        <h2 class="title">
-            <span x-text="settings.esterData[settings.esterKey].name"></span>
-        </h2>
+                <div class="chart-container flex-grow-1">
+                    <canvas id="myChart"></canvas>
+                </div>
 
-        <div class="theme-toggle">
-            <label class="switch">
-                <input type="checkbox"
-                       :checked="theme === 'dark'"
-                       @change="
-                        theme = $event.target.checked ? 'dark' : 'light';
-                       localStorage.setItem('theme', theme);
-                       updateChart();
-                        ">
-                <span class="slider"></span>
-            </label>
-        </div>
-    </div>
-
-    <!-- Canvas for Chart.js -->
-    <canvas style="height:400px" id="myChart"></canvas>
-
-    <h2>Adjust Settings</h2>
-    <div class="form-grid" x-effect="updateChart()" x-on:change="updateChart()">
-        <!-- Select compound -->
-        <div class="field">
-            <label for="dose">Ester:</label>
-            <select x-model="settings.esterKey">
-                <template x-for="[key, ester] in Object.entries(settings.esterData)" :key="key">
-                    <option
-                            :value="key"
-                            :selected="settings.esterKey === key"
-                            x-text="ester.name">
-                    </option>
-                </template>
-            </select>
-        </div>
-        <div class="field">
-            <label>Study preset</label>
-            <select x-model="settings.selectedPreset" @change="updateChart()">
-                <template x-for="[key, preset] in Object.entries(studyPresets.presets)" :key="key">
-                    <option
-                            :disabled="key === 'custom'"
-                            :value="key"
-                            x-text="preset.label">
-                    </option>
-                </template>
-            </select>
-        </div>
-        <!-- Dose -->
-        <div class="field">
-            <label for="dose">Dose (mg):</label>
-            <input type="number" id="dose" x-model.number="settings.dose" min="0" step="5"
-                   placeholder="Enter dose in mg"
-            >
-        </div>
-        <!-- Start Date -->
-        <div class="field">
-            <label for="startDateField">Start Date:</label>
-            <input type="date" id="startDateField" x-model="settings.startDateField">
-        </div>
-        <!-- Dose Frequency -->
-        <div class="field">
-            <label for="doseFrequency">Interval (days):</label>
-            <input type="number" id="doseFrequency" x-model.number="settings.doseFrequency" min="1" step="1"
-                   placeholder="Enter dose frequency in days">
-        </div>
-        <!-- Duration (Weeks) -->
-        <div class="field">
-            <label>Duration (weeks)</label>
-            <input type="number"
-                   x-model.number="settings.durationWeeks"
-                   min="1">
-        </div>
-        <!-- Toggle nmol/ng/dl -->
-        <div x-show="settings.esterData[settings.esterKey].active_form === 'test'">
-            <div class="field">
-                <label>Age:</label>
-                <select x-model="settings.age">
-                    <option value="young">young (18-36)</option>
-                    <option value="old">old (36+)</option>
-                </select>
+            </div>
+            <div x-show="typeof(studyPresets.presets[settings.selectedPreset].source) !== 'undefined'" class="border rounded pb-3 p-2">
+                <div >
+                    <span><a x-text="studyPresets.presets[settings.selectedPreset].label"
+                             :href="studyPresets.presets[settings.selectedPreset].source"></a></span>
+                </div>
             </div>
         </div>
-        <!-- Toggle nmol/ng/dl -->
-        <div class="field">
-            <label>Units</label>
+        <!-------------------------------------- Formulation Control Col --------------------------------------->
+        <div class="col-12 col-md-6 col-lg-4 col-xl-3">
 
-            <select x-model="settings.nmolNgDl">
-                <option value="nmol">nmol/L</option>
-                <option value="ngdl">ng/dL</option>
-            </select>
+            <!-- Ester -->
+            <div class="mb-3">
+                <div class="input-group">
+                    <span class="input-group-text">Ester</span>
+                    <select class="form-select" x-model="settings.esterKey">
+                        <option disabled value="" selected>
+                            Load Ester
+                        </option>
+                        <template x-for="[key, ester] in Object.entries(settings.esterData)" :key="key">
+                            <option :value="ester.ester_shortcode" x-text="ester.name" :key="key"></option>
+                        </template>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Study preset -->
+            <div class="mb-3">
+                <div class="input-group">
+                    <span class="input-group-text">Preset</span>
+                    <select class="form-select"
+                            x-model="settings.selectedPreset"
+                            @change="updateChart()">
+                        <template x-for="[key, preset] in Object.entries(studyPresets.presets)" :key="key">
+                            <option :disabled="key === 'custom'"
+                                    :value="key"
+                                    x-text="preset.label"></option>
+                        </template>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Dose -->
+            <div class="mb-3">
+                <div class="input-group">
+                    <span class="input-group-text">Dose</span>
+                    <input class="form-control"
+                           type="number"
+                           x-model.number="settings.dose"
+                           min="0"
+                           step="5">
+                    <span class="input-group-text">mg</span>
+                </div>
+            </div>
+
+            <!-- Start Date -->
+            <div class="mb-3">
+                <div class="input-group">
+                    <span class="input-group-text">Start</span>
+                    <input class="form-control"
+                           type="date"
+                           x-model="settings.startDateField">
+                </div>
+            </div>
+
+            <!-- Interval -->
+            <div class="mb-3">
+                <div class="input-group">
+                    <span class="input-group-text">Interval</span>
+                    <input class="form-control"
+                           type="number"
+                           x-model.number="settings.doseFrequency"
+                           min="1">
+                    <span class="input-group-text">days</span>
+                </div>
+            </div>
+
+            <!-- Duration -->
+            <div class="mb-3">
+                <div class="input-group">
+                    <span class="input-group-text">Duration</span>
+                    <input class="form-control"
+                           type="number"
+                           x-model.number="settings.durationWeeks"
+                           min="1">
+                    <span class="input-group-text">weeks</span>
+                </div>
+            </div>
+
+            <!-- Age -->
+            <div class="mb-3" x-show="settings.esterData[settings.esterKey].active_form === 'test'">
+                <div class="input-group">
+                    <span class="input-group-text">Age</span>
+                    <select class="form-select" x-model="settings.age">
+                        <option value="young">young (18–36)</option>
+                        <option value="old">old (36+)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Units -->
+            <div class="mb-3">
+                <div class="input-group">
+                    <span class="input-group-text">Units</span>
+                    <select class="form-select" x-model="settings.nmolNgDl">
+                        <option value="nmol">nmol/L</option>
+                        <option value="ngdl">ng/dL</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Plotter -->
+            <div class="mb-3" x-show="settings.esterData[settings.esterKey].active_form !== 'e2'">
+                <div class="input-group">
+                    <span class="input-group-text">Model</span>
+                    <select class="form-select" x-model="settings.bateman">
+                        <option value="false">3-compartment</option>
+                        <option value="true">Bateman</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Draw points -->
+            <div class="mb-3">
+                <div class="input-group">
+                    <span class="input-group-text">Resolution</span>
+                    <input class="form-control"
+                           type="number"
+                           x-model.number="settings.drawPointTime"
+                           min=".005"
+                           step=".0125">
+                    <span class="input-group-text">/day</span>
+                </div>
+            </div>
+
+            <!-- Mode -->
+            <template x-if="settings.doses > 1">
+            <div class="mb-3" >
+                <div class="input-group">
+                    <span class="input-group-text">Mode</span>
+                    <select class="form-select" x-model="settings.steadyStateMode">
+                        <option value="false">Transient</option>
+                        <option value="true">Steady-state</option>
+                    </select>
+                </div>
+            </div>
+            </template>
+
         </div>
-        <!-- Simulation -->
-        <div x-show="settings.esterData[settings.esterKey].active_form !== 'e2'">
-        <div class="field">
-            <label>Plotter</label>
-            <select x-model="settings.bateman">
-                <option value="false">infer 3 compartment</option>
-                <option value="true">bateman</option>
-            </select>
+        <!-- TODO
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="col-12 col-lg-4">
+                <div class="border rounded pb-3 p-2">
+                    <div class="">
+                        <div class="fw-semibold mb-1">Batch Totals</div>
+                        <div class="d-flex justify-content-between">
+                            <span>Total Displacement</span>
+                            <span>
+                          <span x-text="calculateBatchTotals(solutionMeasurement.compounds).mls.toFixed(2) + ' ml'">
+                          </span>
+                        </span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Total Weight</span>
+                            <span>
+                          <span x-text="calculateBatchTotals(solutionMeasurement.compounds).grams.toFixed(2) + ' gm'">
+                          </span>
+                        </span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Filter Time</span>
+                            <span>
+                          <span x-text="solutionMeasurement.filterTime.toFixed(2) + ' minutes'">
+                          </span>
+                        </span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Excipients Avg Viscosity</span>
+                            <span>
+                          <span x-text="solutionMeasurement.viscosity.toFixed(2) + ' cP'">
+                          </span>
+                        </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="border rounded pb-3 p-2">
+                <div x-show="typeof(studyPresets.presets[settings.selectedPreset].source) !== 'undefined'">
+                    <span><a x-text="studyPresets.presets[settings.selectedPreset].label"
+                             :href="studyPresets.presets[settings.selectedPreset].source"></a></span>
+                </div>
+            </div>
         </div>
-        </div>
-        <!-- Draw Points -->
-        <div class="field">
-            <label for="dose">Draw points (per day):</label>
-            <input type="number" id="dose" x-model.number="settings.drawPointTime" min=".005" step=".0125">
-        </div>
-        <div x-show="typeof(studyPresets.presets[settings.selectedPreset].source) !== 'undefined'">
-            <span ><a x-text="studyPresets.presets[settings.selectedPreset].label" :href="studyPresets.presets[settings.selectedPreset].source"></a></span>
-        </div>
-    </div>
-    <div            x-init="onResize"
-            @resize.window="onResize"
-    >
+        -->
 </div>
 
 </body>
