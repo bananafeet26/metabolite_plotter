@@ -163,6 +163,19 @@
                 </div>
             </div>
 
+            <!-- Ranges -->
+            <div class="mb-3" >
+                <div class="input-group">
+                    <span class="input-group-text">Reference Range</span>
+                    <select class="form-select" x-model="settings.ranges">
+                        <option value="disable">disable</option>
+                            <option :disabled="settings.esterData[settings.esterKey].active_form === 'nandrolone'"  value="male_e2">male e2</option>
+                            <option :disabled="settings.esterData[settings.esterKey].active_form === 'nandrolone' || settings.esterData[settings.esterKey].active_form === 'e2'" value="male_test">male test</option>
+                            <option :disabled="settings.esterData[settings.esterKey].active_form === 'nandrolone'"  value="female_e2">female e2</option>
+                            <option :disabled="settings.esterData[settings.esterKey].active_form === 'nandrolone' || settings.esterData[settings.esterKey].active_form === 'e2'" value="female_test">female test</option>
+                    </select>
+                </div>
+            </div>
             <!-- Draw points -->
             <div class="mb-3">
                 <div class="input-group">

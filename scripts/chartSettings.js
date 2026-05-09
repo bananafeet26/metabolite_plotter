@@ -47,10 +47,13 @@ var chartSettings = {
                     display: true,
                     text: 'pg/mL'
                 },
+                color: 'pink',
                 ticks: {
+                    color: 'pink',
                     callback: (value) => value + ' pg/mL'
                 },
                 grid: {
+                    color: 'pink',
                     drawOnChartArea: false // cleaner dual-axis look
                 }
             },
@@ -82,6 +85,34 @@ var chartSettings = {
                         label: {
                             display: true,
                             content: `Average:`
+                        }
+                    }, avgLineLower: {
+                        type: 'line',
+                        scaleID: 'y',
+                        value: 300,
+
+                        borderColor: 'blue',
+                        borderDash: [6, 6],
+                        borderWidth: 2,
+
+                        label: {
+                            enabled: true,
+                            content: ``,
+                            position: 'end'
+                        }
+                    }, avgLineUpper: {
+                        type: 'line',
+                        scaleID: 'y',
+                        value: 1000,
+
+                        borderColor: 'blue',
+                        borderDash: [6, 6],
+                        borderWidth: 2,
+
+                        label: {
+                            enabled: true,
+                            content: ``,
+                            position: 'end'
                         }
                     }
                 }

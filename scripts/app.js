@@ -1,15 +1,15 @@
 function metaboliteApp() {
     return {
         settings: {
-            dose: 25,
-            doseFrequency: 1,
+            dose: 5,
+            doseFrequency: 3.5,
             startDate: new Date(),
             startDateField: new Date().toISOString().split('T')[0],
-            durationWeeks: 2,
+            durationWeeks: 1,
             age: 'young',
             nmolNgDl: 'ngdl',
             esterData: ester_data,
-            esterKey: 7,
+            esterKey: 'eb',
             //steadyState: false,
             drawPointTime: 0.1675,
             bateman: false, // infer 3 compartment model if false
@@ -17,6 +17,7 @@ function metaboliteApp() {
             oldPreset: "notset",
             steadyStateMode: false,
             doses: 1,
+            ranges: "disable",
         },
         studyPresets: {
             presets: studyPresets
@@ -266,7 +267,7 @@ function metaboliteApp() {
                 data: [],  // Initial data
                 yAxisID: 'y1',
                 xAxisID: 'x',
-                borderColor: 'orange',
+                borderColor: 'pink',
                 hidden: false,
                 fill: false
             }
@@ -275,7 +276,7 @@ function metaboliteApp() {
                 data: [],  // Initial data
                 yAxisID: 'y1',
                 xAxisID: 'x',
-                borderColor: 'pink',
+                borderColor: 'grey',
                 hidden: false,
                 fill: false
             }
@@ -428,15 +429,169 @@ function metaboliteApp() {
                     position: 'end'
                 }
             };
-            console.log(this.settings.esterKey);
+            // Apply label to y1 axis
+            if (ester['active_form'] === 'e2') {
+                this.chart.options.plugins.annotation.annotations.avgLine.scaleID = 'y1';
+            } else {
+                this.chart.options.plugins.annotation.annotations.avgLine.scaleID = 'y';
+            }
 
+            // references ranges
+            if (this.settings.ranges === "male_test") {
+                let upperTestValue = 1000;
+                let lowerTestValue = 300;
+                if (nmolNgDl === 'nmol') {
+                    upperTestValue = 30;
+                    lowerTestValue = 10;
+                }
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.display = true;
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.value = upperTestValue;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.display = true;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.value = lowerTestValue;
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.scaleID = 'y';
+                this.chart.options.plugins.annotation.annotations.avgLineLower.scaleID = 'y';
+
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.borderColor = 'blue';
+                this.chart.options.plugins.annotation.annotations.avgLineLower.borderColor = 'blue';
+                this.chart.options.scales.y1.display = false;
+                this.chart.options.scales.y.display = true;
+
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.label.content = `Upper Test: ${upperTestValue.toFixed(2)}`;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.label.content = `Lower Test: ${lowerTestValue.toFixed(2)}`;
+                if (ester['active_form'] === 'test') {
+                    if (typeof this.chart.data.datasets[1] !== "undefined") {
+                        this.chart.data.datasets[1].hidden = true;
+                    }
+                    if (typeof this.chart.data.datasets[2] !== "undefined") {
+                        this.chart.data.datasets[2].hidden = true;
+                    }
+                } else if (ester['active_form'] === 'e2') {
+
+                }
+            } else if (this.settings.ranges === "female_test") {
+                let upperTestValue = 60;
+                let lowerTestValue = 8;
+                if (nmolNgDl === 'nmol') {
+                    upperTestValue = 2.5;
+                    lowerTestValue = 0.5;
+                }
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.display = true;
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.value = upperTestValue;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.display = true;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.value = lowerTestValue;
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.scaleID = 'y';
+                this.chart.options.plugins.annotation.annotations.avgLineLower.scaleID = 'y';
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.borderColor = 'blue';
+                this.chart.options.plugins.annotation.annotations.avgLineLower.borderColor = 'blue';
+
+                this.chart.options.scales.y1.display = false;
+                this.chart.options.scales.y.display = true;
+
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.label.content = `Upper Test: ${upperTestValue.toFixed(2)}`;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.label.content = `Lower Test: ${lowerTestValue.toFixed(2)}`;
+                if (ester['active_form'] === 'test') {
+                    if (typeof this.chart.data.datasets[1] !== "undefined") {
+                        this.chart.data.datasets[1].hidden = true;
+                    }
+                    if (typeof this.chart.data.datasets[2] !== "undefined") {
+                        this.chart.data.datasets[2].hidden = true;
+                    }
+                } else if (ester['active_form'] === 'e2') {
+
+                }
+            } else if (this.settings.ranges === "male_e2") {
+                let upperE2Value = 50;
+                let lower2EValue = 10;
+                if (nmolNgDl === 'nmol') {
+                    upperE2Value = 191;
+                    lower2EValue = 10;
+                }
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.display = true;
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.value = upperE2Value;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.display = true;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.value = lower2EValue;
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.scaleID = 'y1';
+                this.chart.options.plugins.annotation.annotations.avgLineLower.scaleID = 'y1';
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.label.content = `Upper E2: ${upperE2Value.toFixed(2)}`;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.label.content = `Lower E2: ${lower2EValue.toFixed(2)}`;
+
+                if (ester['active_form'] === 'test') {
+                    if (typeof this.chart.data.datasets[0] !== "undefined") {
+                        this.chart.data.datasets[0].hidden = true;
+                    }
+                    if (typeof this.chart.data.datasets[2] !== "undefined") {
+                        this.chart.data.datasets[2].hidden = true;
+                    }
+                } else if (ester['active_form'] === 'e2') {
+
+                }
+                this.chart.options.scales.y.display = false;
+                this.chart.options.scales.y1.display = true;
+            } else if (this.settings.ranges === "female_e2") {
+                let upperTestValue = 214;
+                let lowerTestValue = 20;
+                if (nmolNgDl === 'nmol') {
+                    upperTestValue = 786;
+                    lowerTestValue = 72;
+                }
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.display = true;
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.value = upperTestValue;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.display = true;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.value = lowerTestValue;
+
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.scaleID = 'y1';
+                this.chart.options.plugins.annotation.annotations.avgLineLower.scaleID = 'y1';
+
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.borderColor = 'pink';
+                this.chart.options.plugins.annotation.annotations.avgLineLower.borderColor = 'pink';
+
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.label.content = `Upper E2: ${upperTestValue.toFixed(2)}`;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.label.content = `Lower E2: ${lowerTestValue.toFixed(2)}`;
+
+                this.chart.options.scales.y.display = false;
+                this.chart.options.scales.y1.display = true;
+                if (ester['active_form'] === 'test') {
+                    if (typeof this.chart.data.datasets[0] !== "undefined") {
+                        this.chart.data.datasets[0].hidden = true;
+                    }
+                    if (typeof this.chart.data.datasets[2] !== "undefined") {
+                        this.chart.data.datasets[2].hidden = true;
+                    }
+                } else if (ester['active_form'] === 'e2') {
+
+                }
+            }
+
+            if (this.settings.ranges === "disable") {
+                this.chart.data.datasets[0].hidden = false;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.display = false;
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.display = false;
+
+                if (typeof this.chart.data.datasets[1] !== 'undefined') {
+                    this.chart.data.datasets[1].hidden = false;
+
+                }
+                if (typeof this.chart.data.datasets[2] !== 'undefined') {
+                    this.chart.data.datasets[2].hidden = false;
+
+                }
+                if (ester['active_form'] === 'test') {
+                    this.chart.options.scales.y.display = true;
+                    this.chart.options.scales.y1.display = true;
+                } else if (ester['active_form'] === 'e2') {
+                    this.chart.options.scales.y.display = false;
+
+                }
+            }
+            // enable or disable multidose and steady state mode
             let doses = this.settings.durationWeeks*7 / (this.settings.doseFrequency)
-            console.log(doses);
             if (doses > 1) {
                 this.settings.doses = doses.toFixed(0);
             } else {
                 this.settings.doses =1;
             }
+
+
             this.chart.update();  // Redraw the chart
 
 
