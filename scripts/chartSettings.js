@@ -1,130 +1,77 @@
+var theme_text = getThemeColors().text;
+var theme_secondary = getThemeColors().secondary;
+var theme_border = getThemeColors().border;
+var theme_bg = getThemeColors().bg;
+
 var chartSettings = {
-    type: 'line',
+    type: 'pie',
     data: {
         labels: [],
         datasets: []
     },
     options: {
-        responsive: true,
         maintainAspectRatio: false,
+        layout: {
+            padding: 30,
+        },
         scales: {
-            x: {
-                type: 'time',  // Use timescale
-                time: {
-                    unit: 'day',  // Display unit is 'day'
-                    displayFormats: {
-                        day: 'DD/MM',
-                    },
-                    tooltipFormat: 'll',  // Format for tooltips (optional)
-                },
-                title: {
-                    display: true,
-                    text: 'Date'
-                },
-                ticks: {
-                    maxRotation: 0,  // Optional: Prevent the labels from rotating too much
-                    autoSkip: true,  // Automatically skip labels if they are too crowded
-                    maxTicksLimit: 10,  // Limit the number of ticks to show on the X-axis
-                }
-            },
             y: {
-                type: 'linear',
-                display: true,
-                position: 'left',
-                title: {
-                    display: true,
-                    text: 'ng/dL'
-                },
+                display: false,
+                beginAtZero: true,
                 ticks: {
-                    callback: (value) => value + ' ng/dL'
-                }
-            },
-            y1: {
-                type: 'linear',
-                display: true,
-                position: 'right',
-                title: {
-                    display: true,
-                    text: 'pg/mL'
-                },
-                color: 'pink',
-                ticks: {
-                    color: 'pink',
-                    callback: (value) => value + ' pg/mL'
+                    display: false,
                 },
                 grid: {
-                    color: 'pink',
-                    drawOnChartArea: false // cleaner dual-axis look
-                }
+                    display: false,
+                },
+            },
+            x: {
+                display: false,
+                ticks: {
+                    display: false,
+                },
+                grid: {
+                    display: false,
+                },
             },
         },
         plugins: {
+            legend: {
+                position: 'left', // 👈 moves legend to the left
+                labels: {
+                    boxWidth: 20,
+                    padding: 15,
+                    color: theme_text,
+                }
+            },
             tooltip: {
                 callbacks: {
                     label: function(context) {
-                        const dataset = context.dataset;
-                        const value = context.parsed.y;
-
-                        // attach unit per dataset
-                        const unit = dataset.unit || '';
-                        return `${dataset.label}: ${Math.floor(value)} ${unit} ng/dL`;
-                    }
-                }
-            },
-            annotation: {
-                annotations: {
-                    avgLine: {
-                        type: 'line',
-                        scaleID: 'y',
-                        value: 0,
-
-                        borderColor: 'black',
-                        borderDash: [6, 6],
-                        borderWidth: 3,
-
-                        label: {
-                            display: true,
-                            content: `Average:`
-                        }
-                    }, avgLineLower: {
-                        type: 'line',
-                        scaleID: 'y',
-                        value: 300,
-
-                        borderColor: 'blue',
-                        borderDash: [6, 6],
-                        borderWidth: 2,
-
-                        label: {
-                            enabled: true,
-                            content: ``,
-                            position: 'end'
-                        }
-                    }, avgLineUpper: {
-                        type: 'line',
-                        scaleID: 'y',
-                        value: 1000,
-
-                        borderColor: 'blue',
-                        borderDash: [6, 6],
-                        borderWidth: 2,
-
-                        label: {
-                            enabled: true,
-                            content: ``,
-                            position: 'end'
-                        }
+                        return context.label + ': ' + context.raw + ' mL';
                     }
                 }
             }
         }
     },
 };
+function getThemeColors() {
 
-var blankDataset = {
-    label: 'E2',
-    data: [],  // Initial data
-    borderColor: 'pink',
-    hidden: false,
-    fill: false
-};
+    const styles = getComputedStyle(document.documentElement);
+
+    return {
+        text: styles.getPropertyValue('--bs-body-color').trim(),
+        secondary: styles.getPropertyValue('--bs-secondary-color').trim(),
+        border: styles.getPropertyValue('--bs-border-color').trim(),
+        bg: styles.getPropertyValue('--bs-body-bg').trim()
+    };
+}
+
+var colours = ["#8cb369", "#f4e285", "#f4a259", "#5b8e7d", "#bc4b51"]
+
+var palettes = {
+    nature: ["#8cb369", "#f4e285", "#f4a259", "#5b8e7d", "#bc4b51"],
+    ocean: ["#05668d", "#028090", "#00a896", "#02c39a", "#f0f3bd"],
+    sunset: ["#ff6b6b", "#f7b267", "#f79d65", "#f4845f", "#f27059"],
+    neon: ["#ff006e", "#8338ec", "#3a86ff", "#06d6a0", "#ffbe0b"],
+    unique: ["#1be7ff", "#6eeb83", "#e4ff1a", "#e8aa14", "#ff5714"]
+}

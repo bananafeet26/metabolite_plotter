@@ -6,249 +6,727 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Hormone and Metabolite Plotter</title>
+    <title>Solution Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+            crossorigin="anonymous"></script>
+
+    <script src="./scripts/app.js"></script>
+    <script src="./scripts/compounds.js"></script>
+    <script src="./scripts/chartSettings.js"></script>
+    <script src="./scripts/maths.js"></script>
+    <script src="./scripts/constants.js"></script>
+    <script src="./scripts/recipes.js"></script>
 
     <!-- Load Alpine.js -->
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@2.8.2/dist/alpine.min.js" defer></script>
-    <script src="./scripts/app.js"></script>
-    <script src="./scripts/ester-data.js"></script>
-    <script src="./scripts/calc-curve.js"></script>
-    <script src="./scripts/bateman.js"></script>
-    <script src="./scripts/chartSettings.js"></script>
-    <script src="./scripts/studyPresets.js"></script>
+
     <!-- Load Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@^3"></script>
     <script src="https://cdn.jsdelivr.net/npm/moment@^2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@^1"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1"></script>
-
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <style>
-    </style>
+
+
 </head>
-<body>
-<div class="container-fluid" x-data="metaboliteApp()" x-init="initializeChart(); updateChart();" :class="theme">
+<body class="container-fluid " x-data="compoundApp()" x-init="init(); updateChart();" :data-bs-theme="settings.theme">
+<div>
     <h2 class="title text-center">
-        <span>Hormone and Metabolite Plotter</span>
+        <span>Formulation Calculator</span>
+        <button
+                class="btn"
+                @click="changeTheme()"
+        >
+            <span x-text="settings.theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'"></span>
+        </button>
     </h2>
     <!-------------------------------------- Graphing System Col ------------------------------------------->
-    <div class="row" x-effect="updateChart()" x-on:change="updateChart()">
-        <div class="col-12 col-md-8 col-lg-8 col-xl-9" style="height: 65vh">
-            <div class="border rounded h-100 d-flex flex-column">
+    <div class="row">
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="border rounded">
+                <!-------------------------------------- Chart  --------------------------------------->
 
-                <div class="chart-container flex-grow-1">
+                <div style="position: relative;">
                     <canvas id="myChart"></canvas>
                 </div>
 
-            </div>
-            <div x-show="typeof(studyPresets.presets[settings.selectedPreset].source) !== 'undefined'" class="border rounded pb-3 p-2">
-                <div >
-                    <span><a x-text="studyPresets.presets[settings.selectedPreset].label"
-                             :href="studyPresets.presets[settings.selectedPreset].source"></a></span>
+
+                <!-------------------------------------- Dynamic Ratings  --------------------------------------->
+                <div class=" rounded p-3 mb-2 ">
+                    <div class="input-group mb-1 col-12 col-md-4 col-lg-3">
+                        <div class="input-group-prepend">
+                            <span x-text="'Palette'" class="input-group-text" id=""></span>
+                        </div>
+                        <select
+                                class="form-select w-25 mb-3"
+                                x-model="settings.selectedPalette"
+                                @change="changePalette()"
+                        >
+                            <option value="nature">Nature</option>
+                            <option value="ocean">Ocean</option>
+                            <option value="sunset">Sunset</option>
+                            <option value="neon">Neon</option>
+                            <option value="unique">Unique</option>
+
+                        </select>
+
+                        <template x-for="color in colours">
+                            <div
+                                    style="width:60px;height:60px;display:inline-block;margin:5px;border-radius:8px"
+                                    :style="`background:${color}`"
+                            ></div>
+                        </template>
+
+                    </div>
+                    <template x-if="settings.solventPercentage !== 0">
+                        <div class="progress mb-1" style="height: 20px;">
+                            <div class="progress-bar "
+                                 :class="{
+                  'bg-danger': settings.viscosityRating <= 25,
+                  'bg-warning': settings.viscosityRating > 25 && settings.viscosityRating <= 50,
+                  'bg-info': settings.viscosityRating > 50 && settings.viscosityRating <= 75,
+                  'bg-success': settings.viscosityRating > 75
+               }"
+                                 :style="`width: ${settings.viscosityRating ?? 0}%`"
+                                 role="progressbar"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">
+                                <span x-text="'Viscosity ' + ((settings.viscosity ?? 0).toFixed()) + ' cP'"></span>
+                            </div>
+
+                        </div>
+                    </template>
+                    <template x-if="settings.solventPercentage !== 0">
+                        <div class="progress mb-1" style="height: 20px;">
+                            <div class="progress-bar "
+                                 :class="{
+                  'bg-danger': settings.solventPercentageRating <= 25,
+                  'bg-warning': settings.solventPercentageRating > 25 && settings.solventPercentageRating <= 50,
+                  'bg-info': settings.solventPercentageRating > 50 && settings.solventPercentageRating <= 75,
+                  'bg-success': settings.solventPercentageRating > 75
+               }"
+                                 :style="`width: ${settings.solventPercentageRating}%`"
+                                 role="progressbar"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">
+                                <span x-text="'Solvents ' + (settings.solventPercentage.toFixed()) + ' % v.v'"></span>
+                            </div>
+                        </div>
+                    </template>
+                    <div class="hr"></div>
+
+                </div>
+                <!--------------------------------------- Select Recipe --------------------------------->
+                <div class="p-2 row">
+                    <div class="d-flex gap-2">
+                        <select
+                                class="form-select"
+                                x-model="settings.selectedRecipeId"
+                                @change="updateRecipe()"
+                        >
+                            <option value="">Load Recipe</option>
+                            <template x-for="(recipe, index) in recipes" :key="index">
+                                <option :text="recipe.name" :value="index"><span x-text="recipe.name"></span></option>
+
+                            </template>
+                        </select>
+
+                    </div>
+                </div>
+                <!--------------------------------------- Drop down form control --------------------------------->
+                <div class="p-2 row">
+                    <div class="d-flex gap-2">
+                        <select
+                                class="form-select"
+                                x-model="settings.addRowSelectedCompoundId"
+                                @change="addCompoundRow('excipient'); settings.addRowSelectedCompoundId = '';"
+                        >
+                            <option value="">Add excipient</option>
+                            <template
+                                    x-for="compound in compounds.filter(c => c.basis !== 'mg_per_ml')"
+                                    :key="compound.self_id"
+                            >
+                                <option
+                                        :disabled="settings.compounds.some(c => c.self_id === compound.self_id)"
+                                        :value="compound.self_id"
+                                        x-text="compound.name">
+                                </option>
+                            </template>
+                        </select>
+                        <select
+                                class="form-select"
+                                x-model="settings.addRowSelectedCompoundId"
+                                @change="addCompoundRow('ingredient'); settings.addRowSelectedCompoundId = '';"
+                        >
+                            <option value="">Add compound</option>
+                            <template
+                                    x-for="compound in compounds.filter(c => c.basis === 'mg_per_ml')"
+                                    :key="compound.self_id"
+                            >
+                                <option
+                                        :disabled="settings.compounds.some(c => c.self_id === compound.self_id)"
+                                        :value="compound.self_id"
+                                        x-text="compound.name">
+                                </option>
+                            </template>
+                        </select>
+                        <!--
+                        <button class="btn btn-outline-secondary"
+                                @click="anaylseBatch()">Analyse
+                        </button>
+                        -->
+                    </div>
                 </div>
             </div>
         </div>
         <!-------------------------------------- Formulation Control Col --------------------------------------->
-        <div class="col-12 col-md-4 col-lg-4 col-xl-3">
+        <div class="col-12 col-md-6 col-lg-4 mt-2">
+            <div class="border rounded pb-3 p-2">
+                <!-- Formulation Control -->
+                <div x-on:input.debounce.50ms="updateChart()">
+                    <!-- Volume -->
+                    <div class="input-group mb-1">
+                        <div class="input-group-prepend">
+                            <span x-text="'Finished Volume'" class="input-group-text" id=""></span>
+                        </div>
+                        <!-- mL -->
+                        <input class="form-control col-3"
+                               type="number"
+                               min="0"
+                               step="5"
+                               x-model.number="settings.totalVolume"
+                               @change="updateVolume(settings.totalVolume, settings.compounds); updateChart();"
+                        >
+                        <!-- v_v_percent -->
+                        <div class="input-group-append">
+                            <span class="input-group-text">mL</span>
+                        </div>
 
-            <!-- Ester -->
-            <div class="mb-3">
-                <div class="input-group">
-                    <span class="input-group-text">Ester</span>
-                    <select class="form-select" x-model="settings.esterKey">
-                        <option disabled value="" selected>
-                            Load Ester
-                        </option>
-                        <template x-for="[key, ester] in Object.entries(settings.esterData)" :key="key">
-                            <option :value="ester.ester_shortcode" x-text="ester.name" :key="key"></option>
+                    </div>
+                    <!-- Compounds Entry Group-->
+                    <!-- v_v_percent -->
+                    <div class="form-group">
+                        <div class="d-flex align-items-center my-3">
+                            <span class="me-2 fw-semibold">Solvents</span>
+                            <div class="flex-grow-1 border-bottom"></div>
+                        </div>
+                        <template x-for="solutionEntry in settings.compounds.filter(c => c.basis === 'v_v_percent')"
+                                  :key="solutionEntry.self_id">
+                            <div>
+                                <label class="me-2 fst-italic"
+                                       x-text="`${solutionEntry.name}` + ' ................'"></label>
+                                <div class="input-group mb-1 col-6 col-md-4 col-lg-3">
+                                    <div class="dropdown">
+                                        <button class="btn btn-outline-secondary dropdown-toggle"
+                                                type="button"
+                                                data-bs-toggle="dropdown">
+                                            ⋮
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <button class="dropdown-item text-danger"
+                                                        @click="removeCompound(solutionEntry.self_id)">
+                                                    Delete
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <!-- mL -->
+                                    <template x-if="solutionEntry.input === 1">
+                                        <input class="form-control "
+                                               type="text"
+                                               min="0.5"
+                                               step="2.5"
+                                               x-model.number="solutionEntry.mls"
+                                               @change="updateFields(solutionEntry, settings, 'mls');"
+                                               @blur="
+                                                      solutionEntry.mls =
+                                                        !solutionEntry.mls || isNaN(solutionEntry.mls)
+                                                          ? 0.5
+                                                          : parseFloat(Number(solutionEntry.mls).toFixed(2))
+                                                    ">
+                                    </template>
+                                    <!-- v_v_percent -->
+                                    <template x-if="solutionEntry.input === 0">
+                                        <input :class="checkSolvents(solutionEntry, compounds, settings.totalVolume) + ' form-control '"
+                                               type="text"
+                                               min="0.5"
+                                               max="100"
+                                               step="2.5"
+                                               x-model.number="solutionEntry.v_v_percent"
+                                               @change="updateFields(solutionEntry, settings, 'v_v_percent')"
+                                               @blur="
+                                                      solutionEntry.mls =
+                                                        !solutionEntry.mls || isNaN(solutionEntry.mls)
+                                                          ? 0.5
+                                                          : parseFloat(Number(solutionEntry.mls).toFixed(2))
+                                                    ">
+                                    </template>
+                                    <!-- mg_per_ml -->
+                                    <template x-if="solutionEntry.input === 2">
+                                        <input class="form-control"
+                                               min="0.5"
+                                               type="text"
+                                               :class="checkSaturation(solutionEntry, compounds, settings.totalVolume)"
+                                               inputmode="decimal"
+                                               max="10000"
+                                               step="2.5"
+                                               x-model.number="solutionEntry.mg_per_ml"
+                                               @change="updateFields(solutionEntry, settings, 'mg_per_ml')"
+                                               @blur="
+                                                      solutionEntry.mls =
+                                                        !solutionEntry.mls || isNaN(solutionEntry.mls)
+                                                          ? 0.5
+                                                          : parseFloat(Number(solutionEntry.mls).toFixed(2))
+                                                    ">
+                                    </template>
+                                    <div class="dropdown">
+                                        <button class="btn btn-outline-secondary dropdown-toggle"
+                                                type="button"
+                                                x-text="availableInputLabels(solutionEntry)[solutionEntry.input]"
+                                                data-bs-toggle="dropdown">
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <button x-text='availableInputLabels(solutionEntry)[0]'
+                                                        class="dropdown-item text-danger"
+                                                        @click="solutionEntry.input = 0">
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button x-text='availableInputLabels(solutionEntry)[1]'
+                                                        class="dropdown-item text-danger"
+                                                        @click="solutionEntry.input = 1">
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button x-text='availableInputLabels(solutionEntry)[2]'
+                                                        class="dropdown-item text-danger"
+                                                        @click="solutionEntry.input = 2">
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div class="d-flex flex-column">
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-secondary py-0 px-2"
+                                                style="font-size:1rem; line-height:1;"
+                                                @click="
+                                                        solutionEntry.mls = Number(solutionEntry.mls || 0) + 2.5;
+                                                        updateFields(solutionEntry, settings, 'mls');    updateChart();
+                                                    ">
+                                            ▲
+                                        </button>
+
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-secondary py-0 px-2"
+                                                style="font-size:1rem; line-height:1;"
+                                                @click="
+                                                    solutionEntry.mls = Math.max(0.5, Number(solutionEntry.mls || 0) - 2.5);
+                                                    updateFields(solutionEntry, settings, 'mls');    updateChart();
+                                                ">
+                                            ▼
+                                        </button>
+                                    </div>
+                                    <template x-if="solutionEntry.self_id === 'benzyl_alcohol' ">
+                                        <div class="invalid-feedback"
+                                             x-text="'Recommended BA range: 1.2%-5% v.v'"></div>
+                                    </template>
+                                    <template x-if="solutionEntry.self_id === 'benzyl_benzoate' ">
+                                        <div class="invalid-feedback" x-text="'Recommended BB range: 0%-50% v.v'"></div>
+                                    </template>
+                                </div>
+                            </div>
                         </template>
-                    </select>
-                </div>
-            </div>
+                    </div>
+                    <!-- q.s. -->
+                    <div class="form-group">
+                        <div class="d-flex align-items-center my-3">
+                            <span class="me-2 fw-semibold">Excipients</span>
+                            <div class="flex-grow-1 border-bottom"></div>
+                        </div>
+                        <template
+                                x-for="solutionEntry in settings.compounds.filter(c => c.basis === 'q.s.')"
+                                :key="solutionEntry.self_id">
+                            <div>
+                                <label class="me-2 fst-italic"
+                                       x-text=" + solutionEntry.qsMode ? `${solutionEntry.name} q.s.` : `${solutionEntry.name}` + ' ................'"></label>
 
-            <!-- Study preset -->
-            <div class="mb-3">
-                <div class="input-group">
-                    <span class="input-group-text">Preset</span>
-                    <select class="form-select"
-                            x-model="settings.selectedPreset"
-                            @change="updateChart()">
-                        <template x-for="[key, preset] in Object.entries(studyPresets.presets)" :key="key">
-                            <option :disabled="key === 'custom'"
-                                    :value="key"
-                                    x-text="preset.label"></option>
+                                <div class="input-group mb-1 col-6 col-md-4 col-lg-3">
+                                    <div class="dropdown">
+                                        <button class="btn btn-outline-secondary dropdown-toggle"
+                                                type="button"
+                                                data-bs-toggle="dropdown">
+                                            ⋮
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <button class="dropdown-item text-danger"
+                                                        @click="toggleQS(solutionEntry.self_id)">
+                                                    q.s.
+                                                    <span x-text="solutionEntry.qsMode ? 'off' : 'on'"></span>
+                                                </button>
+                                                <button class="dropdown-item text-danger"
+                                                        @click="removeCompound(solutionEntry.self_id)">
+                                                    Delete
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <!-- mL -->
+                                    <template x-if="solutionEntry.input === 0">
+                                        <input class="form-control"
+                                               type="text"
+                                               min="0.5"
+                                               step="5"
+                                               :disabled="solutionEntry.qsMode"
+                                               x-model.number="solutionEntry.mls"
+                                               @change.debounce.50ms="updateFields(solutionEntry, settings, 'mls');"
+                                               @blur="
+                                                      solutionEntry.mls =
+                                                        !solutionEntry.mls || isNaN(solutionEntry.mls)
+                                                          ? 0.5
+                                                          : parseFloat(Number(solutionEntry.mls).toFixed(2))
+                                                    ">
+
+                                    </template>
+                                    <!-- grams -->
+                                    <template x-if="solutionEntry.input === 1">
+
+                                        <input class="form-control"
+                                               type="text"
+                                               min="0.5"
+                                               step="5"
+                                               :disabled="solutionEntry.qsMode"
+                                               x-model.number="solutionEntry.grams"
+                                               @change.debounce.50ms="updateFields(solutionEntry, settings, 'grams');">
+                                    </template>
+                                    <!-- mg_per_ml -->
+                                    <template x-if="solutionEntry.input === 2">
+                                        <input class="form-control"
+                                               min="0.5"
+                                               type="number"
+                                               :class="checkSaturation(solutionEntry, compounds, settings.totalVolume)"
+                                               inputmode="text"
+                                               max="10000"
+                                               step="2.5"
+                                               :disabled="solutionEntry.qsMode"
+                                               x-model.number="solutionEntry.mg_per_ml"
+                                               @change.debounce.50ms="updateFields(solutionEntry, settings, 'mg_per_ml')">
+                                    </template>
+                                    <div class="dropdown">
+                                        <button class="btn btn-outline-secondary dropdown-toggle"
+                                                type="button"
+                                                x-text="availableInputLabels(solutionEntry)[solutionEntry.input]"
+                                                data-bs-toggle="dropdown">
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <button x-text='availableInputLabels(solutionEntry)[0]'
+                                                        class="dropdown-item text-danger"
+                                                        @click="solutionEntry.input = 0">
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button x-text='availableInputLabels(solutionEntry)[1]'
+                                                        class="dropdown-item text-danger"
+                                                        @click="solutionEntry.input = 1">
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button x-text='availableInputLabels(solutionEntry)[2]'
+                                                        class="dropdown-item text-danger"
+                                                        @click="solutionEntry.input = 2">
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div class="d-flex flex-column">
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-secondary py-0 px-2"
+                                                style="font-size:1rem; line-height:1;"
+                                                :disabled="solutionEntry.qsMode"
+                                                @click="
+                                                        solutionEntry.mls = Number(solutionEntry.mls || 0) + 2.5;
+                                                        updateFields(solutionEntry, settings, 'mls');    updateChart();
+                                                    ">
+                                            ▲
+                                        </button>
+
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-secondary py-0 px-2"
+                                                style="font-size:1rem; line-height:1;"
+                                                :disabled="solutionEntry.qsMode"
+                                                @click="
+                                                    solutionEntry.mls = Math.max(0.5, Number(solutionEntry.mls || 0) - 2.5);
+                                                    updateFields(solutionEntry, settings, 'mls');    updateChart();
+                                                ">
+                                            ▼
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </template>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Dose -->
-            <div class="mb-3">
-                <div class="input-group">
-                    <span class="input-group-text">Dose</span>
-                    <input class="form-control"
-                           type="number"
-                           x-model.number="settings.dose"
-                           min="0"
-                           step="5">
-                    <span class="input-group-text">mg</span>
-                </div>
-            </div>
-
-            <!-- Start Date -->
-            <div class="mb-3">
-                <div class="input-group">
-                    <span class="input-group-text">Start</span>
-                    <input class="form-control"
-                           type="date"
-                           x-model="settings.startDateField">
-                </div>
-            </div>
-
-            <!-- Interval -->
-            <div class="mb-3">
-                <div class="input-group">
-                    <span class="input-group-text">Interval</span>
-                    <input class="form-control"
-                           type="number"
-                           x-model.number="settings.doseFrequency"
-                           min="1">
-                    <span class="input-group-text">days</span>
-                </div>
-            </div>
-
-            <!-- Duration -->
-            <div class="mb-3">
-                <div class="input-group">
-                    <span class="input-group-text">Duration</span>
-                    <input class="form-control"
-                           type="number"
-                           x-model.number="settings.durationWeeks"
-                           min="1">
-                    <span class="input-group-text">weeks</span>
-                </div>
-            </div>
-
-            <!-- Age -->
-            <div class="mb-3" x-show="settings.esterData[settings.esterKey].active_form === 'test'">
-                <div class="input-group">
-                    <span class="input-group-text">Age</span>
-                    <select class="form-select" x-model="settings.age">
-                        <option value="young">young (18–36)</option>
-                        <option value="old">old (36+)</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Units -->
-            <div class="mb-3">
-                <div class="input-group">
-                    <span class="input-group-text">Units</span>
-                    <select class="form-select" x-model="settings.nmolNgDl">
-                        <option value="nmol">nmol/L</option>
-                        <option value="ngdl">ng/dL</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Plotter -->
-            <div class="mb-3" x-show="settings.esterData[settings.esterKey].active_form !== 'e2'">
-                <div class="input-group">
-                    <span class="input-group-text">Model</span>
-                    <select class="form-select" x-model="settings.bateman">
-                        <option value="false">3-compartment</option>
-                        <option value="true">Bateman</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Ranges -->
-            <div class="mb-3" >
-                <div class="input-group">
-                    <span class="input-group-text">Reference Range</span>
-                    <select class="form-select" x-model="settings.ranges">
-                        <option value="disable">disable</option>
-                            <option :disabled="settings.esterData[settings.esterKey].active_form === 'nandrolone'"  value="male_e2">male e2</option>
-                            <option :disabled="settings.esterData[settings.esterKey].active_form === 'nandrolone' || settings.esterData[settings.esterKey].active_form === 'e2'" value="male_test">male test</option>
-                            <option :disabled="settings.esterData[settings.esterKey].active_form === 'nandrolone'"  value="female_e2">female e2</option>
-                            <option :disabled="settings.esterData[settings.esterKey].active_form === 'nandrolone' || settings.esterData[settings.esterKey].active_form === 'e2'" value="female_test">female test</option>
-                    </select>
-                </div>
-            </div>
-            <!-- Draw points -->
-            <div class="mb-3">
-                <div class="input-group">
-                    <span class="input-group-text">Resolution</span>
-                    <input class="form-control"
-                           type="number"
-                           x-model.number="settings.drawPointTime"
-                           min=".005"
-                           step=".0125">
-                    <span class="input-group-text">/day</span>
-                </div>
-            </div>
-
-            <!-- Mode -->
-            <template x-if="settings.doses > 1">
-            <div class="mb-3" >
-                <div class="input-group">
-                    <span class="input-group-text">Mode</span>
-                    <select class="form-select" x-model="settings.steadyStateMode">
-                        <option value="false">Transient</option>
-                        <option value="true">Steady-state</option>
-                    </select>
-                </div>
-            </div>
-            </template>
-
-        </div>
-        <!-- TODO
-        <div class="col-12 col-md-6 col-lg-4">
-            <div class="col-12 col-lg-4">
-                <div class="border rounded pb-3 p-2">
-                    <div class="">
-                        <div class="fw-semibold mb-1">Batch Totals</div>
-                        <div class="d-flex justify-content-between">
-                            <span>Total Displacement</span>
-                            <span>
-                          <span x-text="calculateBatchTotals(solutionMeasurement.compounds).mls.toFixed(2) + ' ml'">
-                          </span>
-                        </span>
+                    </div>
+                    <!-- mg_per_ml -->
+                    <div class="form-group">
+                        <div class="d-flex align-items-center my-3">
+                            <span class="me-2 fw-semibold">Compounds</span>
+                            <div class="flex-grow-1 border-bottom opacity-50"></div>
                         </div>
-                        <div class="d-flex justify-content-between">
-                            <span>Total Weight</span>
-                            <span>
-                          <span x-text="calculateBatchTotals(solutionMeasurement.compounds).grams.toFixed(2) + ' gm'">
-                          </span>
-                        </span>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span>Filter Time</span>
-                            <span>
-                          <span x-text="solutionMeasurement.filterTime.toFixed(2) + ' minutes'">
-                          </span>
-                        </span>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span>Excipients Avg Viscosity</span>
-                            <span>
-                          <span x-text="solutionMeasurement.viscosity.toFixed(2) + ' cP'">
-                          </span>
-                        </span>
+                        <template x-for="solutionEntry in settings.compounds.filter(c => c.basis === 'mg_per_ml')"
+                                  :key="solutionEntry.self_id">
+                            <div>
+                                <label class="me-2 fst-italic"
+                                       x-text="`${solutionEntry.name}` + ' ................'"></label>
+
+                                <div class="input-group mb-1 col-6 col-md-4 col-lg-3">
+                                    <div class="dropdown">
+                                        <button class="btn btn-outline-secondary dropdown-toggle"
+                                                type="button"
+                                                data-bs-toggle="dropdown">
+                                            ⋮
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <!-- buggy
+                                            <template
+                                                    x-for="compound in compounds.filter(c => c.basis === 'mg_per_ml')"
+                                                    :key="compound.self_id">
+
+                                                <li
+                                                        class="dropdown-item"
+                                                        :disabled="settings.compounds.some(c => c.self_id === compound.self_id)"
+                                                        x-text="compound.name"
+                                                        @click="changeCompound(solutionEntry.self_id, compound.self_id)">
+                                                </li>
+
+                                            </template>
+                                            -->
+
+                                            <li>
+                                                <button class="dropdown-item text-danger"
+                                                        @click="removeCompound(solutionEntry.self_id)">
+                                                    Delete
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <!-- mg_per_ml -->
+                                    <template x-if="solutionEntry.input === 0">
+                                        <input class="form-control"
+                                               min="0"
+                                               type="number"
+                                               :class="checkSaturation(solutionEntry, compounds, settings.totalVolume)"
+                                               inputmode="decimal"
+                                               max="10000"
+                                               step="2.5"
+                                               x-model.number="solutionEntry.mg_per_ml"
+                                               @change="
+                                                     const val = parseFloat(solutionEntry.mg_per_ml);
+
+                                                     if (!isNaN(val) && val >= 0.5) {
+                                                       updateFields(solutionEntry, settings, 'mg_per_ml');
+                                                     }
+                                                   ">
+                                    </template>
+                                    <!-- purity -->
+                                    <template x-if="solutionEntry.input === 2">
+                                        <input class="form-control"
+                                               min="0"
+                                               type="number"
+                                               :class="checkSaturation(solutionEntry, compounds, settings.totalVolume)"
+                                               inputmode="decimal"
+                                               max="10000"
+                                               step="2.5"
+                                               x-model.number="solutionEntry.purity"
+                                               @change="
+                                                     const val = parseFloat(solutionEntry.purity);
+
+                                                     if (!isNaN(val) && val >= 0.5) {
+                                                       updateFields(solutionEntry, settings, 'mg_per_ml');
+                                                     }
+                                                   ">
+                                    </template>
+                                    <!-- grams -->
+                                    <template x-if="solutionEntry.input === 1">
+                                        <input class="form-control"
+                                               type="number"
+                                               step="5"
+                                               x-model.number="solutionEntry.grams"
+                                               @change="updateFields(solutionEntry, settings, 'grams')"
+                                        >
+                                    </template>
+                                    <div class="dropdown">
+                                        <button class="btn btn-outline-secondary dropdown-toggle"
+                                                type="button"
+                                                x-text="availableInputLabels(solutionEntry)[solutionEntry.input]"
+                                                data-bs-toggle="dropdown">
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <button x-text='availableInputLabels(solutionEntry)[0]'
+                                                        class="dropdown-item text-danger"
+                                                        @click="solutionEntry.input = 0">
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button x-text='availableInputLabels(solutionEntry)[1]'
+                                                        class="dropdown-item text-danger"
+                                                        @click="solutionEntry.input = 1">
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button x-text='"purity " + availableInputLabels(solutionEntry)[2]'
+                                                        class="dropdown-item text-danger"
+                                                        @click="solutionEntry.input = 2">
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <!-- buggy
+                                    <div class="invalid-feedback"
+                                         x-text="'Range for %' + calculateSolventPercentage(compounds, settings.totalVolume) + ' solvent is ' + (estimateSaturationForCompound(solutionEntry, compounds, settings.totalVolume)[0] ?? 0)  + 'mg - ' + (estimateSaturationForCompound(solutionEntry, compounds, settings.totalVolume)[1] ?? 0) + 'mg.'  ">
+                                    </div>
+                                    -->
+                                </div>
+                            </div>
+                        </template>
+                        <div class="input-group">
+                            <div x-show="settings.remainingVolume < 0"
+                                 class="alert alert-danger" role="alert">
+                                ⚠️ <strong>
+                                <span x-text="Math.abs(settings.remainingVolume).toFixed(2)"></span> mL over volume
+                            </strong>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="border rounded pb-3 p-2">
-                <div x-show="typeof(studyPresets.presets[settings.selectedPreset].source) !== 'undefined'">
-                    <span><a x-text="studyPresets.presets[settings.selectedPreset].label"
-                             :href="studyPresets.presets[settings.selectedPreset].source"></a></span>
-                </div>
-            </div>
         </div>
-        -->
+        <div class="col-12 col-lg-4 mt-2">
+
+            <div  class="border rounded pb-3 p-2">
+                <template x-for="solutionMeasurement in solutionMeasurements" :key="solutionMeasurement.id">
+                    <!-------------------------------------- Formulation Overview Column 1 --------------------------------->
+                    <!-- TABLE VIEW -->
+                    <div>
+
+                        <template x-for="compound in solutionMeasurement.compounds" :key="compound.id">
+
+                            <div class="rounded mb-1">
+                                <template x-if="compound.basis === 'mg_per_ml'">
+                                    <div class="fw-semibold mb-1"
+                                         x-text="
+                                              compound.name + ' (' +
+                                              (isNaN(compound.purity)
+                                                ? '0.00'
+                                                : Number(compound.purity).toFixed(2)
+                                              ) +
+                                              ' %)'"></div>
+                                </template>
+                                <template x-if="compound.basis !== 'mg_per_ml'">
+                                    <div class="fw-semibold mb-1"
+                                         x-text="
+                                              compound.name + ' (' +
+                                              (isNaN(compound.v_v_percent)
+                                                ? '0.00'
+                                                : Number(compound.v_v_percent).toFixed(2)
+                                              ) +
+                                              ' % v.v)'"></div>
+                                </template>
+                                <div class="d-flex justify-content-between">
+                                    <span>Weight</span>
+                                    <span>
+                                  <span
+                                          x-text="
+                                              (isNaN(compound.v_v_percent)
+                                                ? '0.00'
+                                                : Number(compound.v_v_percent).toFixed(2)
+                                              ) +
+                                              ' gm'"></span>
+                            </span>
+                                </div>
+                                <template x-if="compound.basis !== 'mg_per_ml'">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Viscosity</span>
+                                        <span>
+
+                                      <span x-show="compound.basis !== 'mg_per_ml'"
+                                            x-text="compound.viscosityArray[0] + ' cP'"></span>
+                                    </span>
+                                    </div>
+                                </template>
+                                <div class="d-flex justify-content-between">
+                                    <template x-if="compound.basis === 'mg_per_ml'">
+                                        <span>Displacement</span>
+                                    </template>
+                                    <template x-if="compound.basis !== 'mg_per_ml'">
+                                        <span>Volume</span>
+                                    </template>
+                                    <span>
+                                      <span
+                                              x-text="
+                                              (isNaN(compound.mls)
+                                                ? '0.00'
+                                                : Number(compound.mls).toFixed(2)
+                                              ) +
+                                              ' ml'"></span>
+                                    </span>
+                                </div>
+                            </div>
+
+                        </template>
+                        <!--  let solutionCalculatedMeasurements = {
+                                id: crypto.randomUUID(),
+                                viscosity: 0,
+                                filterTime: 0,
+                                title: "",
+                                compounds: [],
+                            }
+                        -->
+                        <div class="">
+                            <div class="fw-semibold mb-1">Batch Totals</div>
+                            <div class="d-flex justify-content-between">
+                                <span>Total Displacement</span>
+                                <span>
+                          <span x-text="calculateBatchTotals(solutionMeasurement.compounds).mls.toFixed(2) + ' ml'">
+                          </span>
+                        </span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Total Weight</span>
+                                <span>
+                          <span x-text="calculateBatchTotals(solutionMeasurement.compounds).grams.toFixed(2) + ' gm'">
+                          </span>
+                        </span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Filter Time</span>
+                                <span>
+                          <span x-text="solutionMeasurement.filterTime.toFixed(2) + ' minutes'">
+                          </span>
+                        </span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Excipients Avg Viscosity</span>
+                                <span>
+                          <span x-text="solutionMeasurement.viscosity.toFixed(2) + ' cP'">
+                          </span>
+                        </span>
+                            </div>
+
+                        </div>
+                    </div>
+                    <button @click='downloadBatchText()' class="btn btn-sm btn-secondary">
+                        Download Batch 💾
+                    </button>
+            </div>
+
+            </template>
+        </div>
+    </div>
 </div>
 
+</div>
 </body>
 </html>
