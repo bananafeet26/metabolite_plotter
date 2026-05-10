@@ -1,362 +1,600 @@
-function compoundApp() {
+function metaboliteApp() {
     return {
         settings: {
-            totalVolume: 100, // ml
-            compounds: [],
-            remainingVolume: 100,
-            targetConcentrations: [250],
-            totalGrams: 0,
-            addRowSelectedCompoundId: 0,
-            viscosity: 0,
-            viscosityRating: 0,
-            solventPercentage: 0,
-            solventPercentageRating: 0,
-            stability: 0,
-            isSmall: true,
-            selectedRecipeId: 0,
-            theme: localStorage.getItem('theme') || 'light',
-            selectedPalette: localStorage.getItem('selectedPalette') || 'nature',
+            dose: 5,
+            doseFrequency: 3.5,
+            startDate: new Date(),
+            startDateField: new Date().toISOString().split('T')[0],
+            durationWeeks: 1,
+            age: 'young',
+            nmolNgDl: 'ngdl',
+            esterData: ester_data,
+            esterKey: 'eb',
+            //steadyState: false,
+            drawPointTime: 0.1675,
+            bateman: false, // infer 3 compartment model if false
+            selectedPreset: "custom",
+            oldPreset: "notset",
+            steadyStateMode: false,
+            doses: 1,
+            ranges: "disable",
         },
-        solutionData: {
-            viscosity: 0
+        studyPresets: {
+            presets: studyPresets
         },
-        solutionMeasurements: [],
-        init() {
-            const ctx = document.getElementById('myChart').getContext('2d');
-            this.chart = new Chart(ctx, chartSettings);
-
-            // Initiate basic recipe
-            this.settings.compounds[0] = prepareCompound(1, this.settings.totalVolume, 0, 0, 0, 2, 100); //BA
-            this.settings.compounds[1] = prepareCompound(0, this.settings.totalVolume, 0, 0, 0, 20, 100); //BB
-            this.settings.compounds[2] = prepareCompound(2, this.settings.totalVolume, 0, 0, 0, 26, 100);
-            this.settings.compounds[3] = prepareCompound(3, this.settings.totalVolume, 0, 0, 0, 26, 100);
-
-            this.settings.compounds[4] = prepareCompound(10, this.settings.totalVolume, 0, 0, 250, 0, 93);
-            this.settings.compounds[4].purity = 93;
-
-            for (let compound of this.settings.compounds) {
-                if (compound.class === "ingredient") {
-                    compound.grams = compound.density * compound.mls;
-                }
-            }
-            this.settings.isSmall = window.innerWidth < 576;
-            const update = () => this.settings.isSmall = window.innerWidth < 576;
-            window.addEventListener('resize', update);
-            this.$watch('settings.theme', value => {
-                localStorage.setItem('theme', value);
-            });
-            this.$watch('settings.selectedPalette', value => {
-                localStorage.setItem('selectedPalette', value);
-            });
-
-            this.changePalette();
-        },
-        view: "table",
         theme: localStorage.getItem('theme') || 'light',
         chart: null,  // Store the Chart.js instance here
-        changePalette() {
-            colours = palettes[this.settings.selectedPalette];
-            this.updateChart()
-        },
-        changeTheme() {
-            this.settings.theme = this.settings.theme === 'light' ? 'dark' : 'light';
-            this.updateChart();
-        },
-        calculateRemainingVolume() {
-            let mls = 0
-            for (let i = 0; i < this.settings.compounds.length; i++) {
-                if (typeof this.settings.compounds[i] !== undefined) {
-                    if (typeof this.settings.compounds[i].mls !== "undefined") {
-                        mls += this.settings.compounds[i].mls;
-                    }
+        initializeChart() {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            this.chart = new Chart(ctx, chartSettings);
+            this.$nextTick(() => {
+                const keys = Object.keys(this.settings.esterData);
+
+                if (!this.settings.esterKey && keys.length) {
+                    this.settings.esterKey = keys[0];
                 }
-            }
-            return (this.settings.totalVolume - mls)
-        },
-        addCompoundRow(type) {
-            console.log(this.settings.addRowSelectedCompoundId);
-            let solutionId = compounds.findIndex(c => c.self_id === this.settings.addRowSelectedCompoundId)
-
-            let remainingVolume = this.calculateRemainingVolume();
-            console.log(`solutionId: ${solutionId}`);
-            let mls = 0;
-            let grams = 0;
-            let v_v_percent = 0;
-            let mg_per_ml = 50;
-            let purity = 100;
-            if (type === "excipient") {
-                if (remainingVolume > 0) {
-                    mls = remainingVolume;
-                } else {
-                    mls = 10;
-                }
-            } else if (type === "ingredient") {
-                if (typeof compounds[solutionId].mg_per_ml !== "undefined") {
-                    mg_per_ml = compounds[solutionId].mg_per_ml;
-                } else {
-                    mg_per_ml = 100;
-                }
-            }
-            let solutionEntry = prepareCompound(solutionId, this.settings.totalVolume, mls, grams, mg_per_ml, v_v_percent, purity);
-            console.log(`solutionId: ${solutionId} mls: ${solutionEntry.mls} grams: ${solutionEntry.grams} v_v_percent: ${solutionEntry.v_v_percent} mg_per_ml: ${solutionEntry.mg_per_ml} purity: ${solutionEntry.purity}`);
-            this.settings.compounds.push(solutionEntry);
-            this.updateChart()
-        },downloadBatchText() {
-
-            let lines = [];
-
-            // Title
-            lines.push('                   BATCH REPORT');
-            lines.push('===================================================');
-            lines.push('');
-
-            // Compounds
-            this.solutionMeasurements[0].compounds.forEach(compound => {
-
-
-
-                const percent =
-                    compound.basis === 'mg_per_ml'
-                        ? Number(compound.purity || 0).toFixed(2)
-                        : Number(compound.v_v_percent || 0).toFixed(2);
-
-                let nameLine ='';
-                nameLine = `${compound.name}`;
-                let nameLineEnding = `(${percent}${
-                    compound.basis === 'mg_per_ml'
-                        ? ' %'
-                        : ' % v.v'
-                })`;
-
-                let padding = 45 - nameLine.length - nameLineEnding.length;
-                let finalLine = nameLine + ' ' + ('.'.repeat(padding)) + (' '.repeat(5))  + nameLineEnding;
-
-                lines.push(finalLine);
-
-                lines.push(
-                    `Weight:       ${
-                        Number(compound.v_v_percent || 0).toFixed(2)
-                    } gm`
-                );
-
-                // Viscosity
-                if (compound.basis !== 'mg_per_ml') {
-
-                    lines.push(
-                        `Viscosity:    ${
-                            compound.viscosityArray?.[0] || 0
-                        } cP`
-                    );
-                }
-
-                // Volume / Displacement
-                lines.push(
-                    `${
-                        compound.basis === 'mg_per_ml'
-                            ? 'Displacement:'
-                            : 'Volume:      '
-                    } ${
-                        Number(compound.mls || 0).toFixed(2)
-                    } ml`
-                );
-                lines.push('');
             });
+            document.documentElement.dataset.theme = this.theme;
 
-            // Totals
-            const totals = calculateBatchTotals(
-                this.solutionMeasurements[0].compounds
-            );
-
-            lines.push('                   BATCH REPORT');
-            lines.push('===================================================');
-            lines.push(
-                `Total Displacement:       ${totals.mls.toFixed(2)} ml`
-            );
-            lines.push(
-                `Total Weight:             ${totals.grams.toFixed(2)} gm`
-            );
-            lines.push(
-                `Filter Time:              ${this.solutionMeasurements[0].filterTime.toFixed(2)} minutes`
-            );
-            lines.push(
-                `Excipients Avg Viscosity: ${this.solutionMeasurements[0].viscosity.toFixed(2)} cP`
-            );
-
-            // Create text blob
-            const blob = new Blob(
-                [lines.join('\n')],
-                {type: 'text/plain'}
-            );
-
-            // Create download link
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'batch-report.txt';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(link.href);
-
+            this.$watch('theme', (value) => {
+                document.documentElement.dataset.theme = value;
+                localStorage.setItem('theme', value);
+            });
+            Chart.register(window['chartjs-plugin-annotation']);
+            this.restoreSettings();
         },
-        removeCompound(uuid) {
-            console.log(`removeCompound: ${uuid}`);
-            let index = this.settings.compounds.findIndex(
-                c => c.self_id === uuid
-            );
-            console.log(`index: ${index}`);
-
-            if (index !== -1) {
-                this.settings.compounds.splice(index, 1);
-            }
-            // adjust excipients
-            let excipients = this.settings.compounds.filter(c => c.class === "excipient");
-            let excipientCount = excipients.length;
-            if (excipientCount > 0) {
-                let compound = excipients[0];
-                updateFields(compound.mls, this.settings, "mls");
-            }
-
+        average() {
+            const values = this.chart.data.datasets[0].data;
+            return values.reduce((a, b) => a + b, 0) / values.length;
         },
-        toggleQS(uuid) {
-            console.log(`toggleQS: ${uuid}`);
-            let index = this.settings.compounds.findIndex(
-                c => c.self_id === uuid
-            );
-            this.settings.compounds[index].qsMode = !this.settings.compounds[index].qsMode;
-            console.log(`index: ${index}`);
-        },
-        anaylseBatch() {
-            let solutionCalculatedMeasurements = {
-                id: crypto.randomUUID(),
-                viscosity: 0,
-                filterTime: 0,
-                title: "",
-                compounds: [],
-            }
-            solutionCalculatedMeasurements.viscosity = calculateViscosity(this.settings.compounds);
-            solutionCalculatedMeasurements.filterTime = calculateFilterTimeDarcy(this.settings.totalVolume, solutionCalculatedMeasurements.viscosity);
-            for (let i = 0; i < this.settings.compounds.length; i++) {
-                if (this.settings.compounds[i].class === "excipient") {
-                    solutionCalculatedMeasurements.title += `${this.settings.compounds[i].name} ${this.settings.compounds[i].mls.toFixed(2)}ml, `;
+        getChartTheme() {
+            return this.theme === 'dark'
+                ? {
+                    grid: '#333',
+                    text: '#e6e6e6',
+                    bg: '#1e1e1e',
+                    // 🎨 chart fill (dark mode = subtle glow)
+                    fill: 'rgba(255,255,255,0.32)'
                 }
-                let found = compounds.find(c => c.self_id === this.settings.compounds[i].self_id);
-                //console.log(found.id);
-                let newCompound = compounds.find(c => c.self_id === found.self_id);
-                newCompound.mls = this.settings.compounds[i].mls;
-                newCompound.v_v_percent = this.settings.compounds[i].v_v_percent;
-                newCompound.mg_per_ml = this.settings.compounds[i].mg_per_ml;
-                newCompound.grams = this.settings.compounds[i].grams;
-                newCompound.id = crypto.randomUUID();
-                //console.log(newCompound);
-                solutionCalculatedMeasurements.compounds.push(newCompound);
-            }
-            console.log(this.solutionMeasurements);
-            this.solutionMeasurements.push(solutionCalculatedMeasurements);
-            //this.updateChart();
-        }, deleteBatch(uuid) {
-            console.log(`deleteBatch: ${uuid}`);
-            let index = this.solutionMeasurements.findIndex(
-                c => c.id === uuid
-            );
-            this.solutionMeasurements.splice(index, 1);
-            console.log(`index: ${index}`);
-            this.updateChart();
-        }, get isSmall() {
-            return window.innerWidth < 576;
+                : {
+                    grid: '#ddd',
+                    text: '#333',
+                    bg: '#ffffff',
+
+                    // 🎨 chart fill (light mode = soft pastel)
+                    fill: 'rgba(78,59,68,0.25)'
+                };
         },
-        get isHuge() {
-            return window.innerWidth > 1020;
-        }, updateRecipe() {
-            /*
-            {
-                id: crypto.randomUUID(),
-                name: "Primo Testo Depot",
-                solvents: ["benzyl_alcohol", "benzyl_benzoate"],
-                solventPercentages: [2, 30],
-                excipients:    ["castor"],
-                excipientPercentages: [100],
-                compounds: ["testosterone_enanthate"],
-                compoundConcentration: [250],
-            }
-             */
-            console.log(`Loading recipe: ${this.settings.selectedRecipeId}`)
-            this.settings.compounds = [];
-            let recipe = recipes[this.settings.selectedRecipeId];
-            for (let i = 0; i < recipe.solvents.length; i++) {
-                let solvent = recipe.solvents[i];
-                let compoundId = compounds.findIndex(c => c.self_id === solvent);
-                console.log(`compoundId: ${compoundId} solvent: ${solvent}`);
-                let solventPercentage = recipe.solventPercentages[i];
-                console.log(`solvent: ${solvent}, solventPercentage: ${solventPercentage}`);
-                //function prepareCompound(id, totalVolume, mls, grams, mgsPerMl, v_v_percent, purity) {
-                let solventEntry = prepareCompound(compoundId, this.settings.totalVolume, 0, 0, 0, solventPercentage, 100);
-                this.settings.compounds.push(solventEntry);
-            }
-            for (let i = 0; i < recipe.excipients.length; i++) {
-                let excipient = recipe.excipients[i];
-                let compoundId = compounds.findIndex(c => c.self_id === excipient);
-                console.log(`compoundId: ${compoundId} excipient: ${excipient}`);
-                let excipientPercentage = recipe.excipientPercentages[i];
-                console.log(`excipient: ${excipient}, excipientPercentage: ${excipientPercentage}`);
-                let excipientEntry = prepareCompound(compoundId, this.settings.totalVolume, 0, 0, 0, excipientPercentage, 100);
+        storeSettings() {
+            localStorage.setItem('metaboliteApp', JSON.stringify(this.settings));
+        },
+        restoreSettings() {
+            const data = JSON.parse(localStorage.getItem('metaboliteApp'));
+            console.log(data);
+            this.settings = data || this.settings;
+            this.settings.esterData = ester_data;
+            this.settings.selectedPreset = "pharmacokinetic_single_dose";
+            this.settings.oldPreset = "notset";
+        },
+        loadPreset() {
 
-                this.settings.compounds.push(excipientEntry);
+            let preset = this.studyPresets.presets[this.settings.selectedPreset];
+            // custom mode?
+            if (this.settings.selectedPreset === "custom") {
+                this.settings.dose = this.settings.dose ?? 200;
+                this.settings.doseFrequency = this.settings.doseFrequency ?? 7;
+                this.settings.esterKey = this.settings.esterKey ?? 'tp_o';
+                this.settings.durationWeeks = this.settings.durationWeeks ?? 6;
+                this.settings.oldPreset = "notset";
+                return;
             }
-            for (let i = 0; i < recipe.compounds.length; i++) {
-                let compound = recipe.compounds[i];
-                let compoundId = compounds.findIndex(c => c.self_id === compound);
-                console.log(`compoundId: ${compoundId} compound: ${compound}`);
-                let compoundConcentration = recipe.compoundConcentration[i];
-                console.log(`compound: ${compound}, compoundConcentration: ${compoundConcentration}`);
-                let compoundEntry = prepareCompound(compoundId, this.settings.totalVolume, 0, 0, compoundConcentration, 0, 100);
-                this.settings.compounds.push(compoundEntry);
+            // invalid preset?
+            if (typeof preset === 'undefined') {
+                return;
             }
+            // preset already loaded?
+            if (this.settings.oldPreset === this.settings.selectedPreset) {
+                if (this.settings.dose !== preset.dose) {
+                    this.settings.selectedPreset = "custom";
+                }
+                if (this.settings.doseFrequency !== preset.doseFrequency) {
+                    this.settings.selectedPreset = "custom";
+                }
+                if (this.settings.esterKey !== preset.ester_shortcode) {
+                    this.settings.selectedPreset = "custom";
+                }
+                if (this.settings.durationWeeks !== preset.durationWeeks) {
+                    this.settings.selectedPreset = "custom";
+                }
+                if (this.settings.oldPreset !== this.settings.selectedPreset) {
+                    this.settings.selectedPreset = "custom";
+                }
+                return;
+            }
+            this.settings.dose = preset.dose;
+            this.settings.doseFrequency = preset.doseFrequency;
+            this.settings.esterKey = preset.ester_shortcode;
+            this.settings.durationWeeks = preset.durationWeeks;
+            this.settings.oldPreset = this.settings.selectedPreset;
 
-            this.updateChart();
+        },
+        graphPresetData() {
+            let preset = this.studyPresets.presets[this.settings.selectedPreset];
+            if (typeof preset.study_data_set === "undefined") {
+                console.log("no data");
+                return;
+            }
+            console.log(preset.study_data_set);
+            let studyDataSet = {
+                label: `${preset.label}`,
+                data: [],  // Initial data
+                yAxisID: 'y',
+                xAxisID: 'x',
+                borderColor: 'black',
+                hidden: false,
+                fill: false
+            }
+            for (let i = 0; i < preset.study_data_set.length; i++) {
+                let date = new Date(this.settings.startDate);
+                let yDatum = preset.study_data_set[i].total_t;
+                if (this.settings.nmolNgDl === "nmol") {
+                    yDatum = convert_concentration_units(preset.study_data_set[i].total_t, "ng/dL", "nmol/L", preset.molecular_weight);
+                }
+                date.setDate(date.getDate() + preset.study_data_set[i].day);
+                let set = {x: date, y: yDatum};
+                studyDataSet.data.push(set);
+            }
+            this.chart.data.datasets.push(studyDataSet);
+            this.chart.update();
+        },
+        onResize() {
+            if (window.innerWidth < 600) {
+                this.chart.options.scales.x.ticks.display = false;
+                this.chart.options.scales.y.ticks.display = false;
+                this.chart.options.scales.y1.ticks.display = false;
+                this.chart.options.scales.x.title.display = true;
+                this.chart.options.scales.y.title.display = true;
+                this.chart.options.scales.y1.title.display = true;
+                this.chart.options.scales.y1.grid.display = false;
+            } else {
+                this.chart.options.scales.x.ticks.display = true;
+                this.chart.options.scales.y.ticks.display = true;
+                this.chart.options.scales.y1.ticks.display = true;
+                this.chart.options.scales.x.title.display = false;
+                this.chart.options.scales.y.title.display = false;
+                this.chart.options.scales.y1.title.display = false;
+                this.chart.options.scales.y1.grid.display = true;
+            }
         },
         updateChart() {
-            //this.fillInMissingValues();
-            let remainingVolume = this.calculateRemainingVolume();
-            if (remainingVolume > 0) {
-                console.log("filling in missing values");
-                fillInMissingVolume(this.settings.compounds, this.settings.totalVolume, this.settings)
+            this.storeSettings();
+            this.loadPreset();
+            // Calculate testosterone concentration with hysteresis
+            // To ensure no variability in peak/trough rendering at long time intervals / frequent doses
+            if (typeof (this.settings.startDateField) !== "undefined") {
+                const [year, month, day] = this.settings.startDateField.split('-').map(Number);
+                const date = new Date(year, month - 1, day);
+                this.settings.startDate = date;
             }
-            /* rating system */
-            let viscosityData = calculateViscosity(this.settings.compounds)
-            this.settings.viscosity = viscosityData;
-            this.settings.viscosityRating = viscosityRating(viscosityData);
-            this.settings.solventPercentage = calculateSolventPercentage(this.settings.compounds, this.settings.totalVolume);
-            this.settings.solventPercentageRating = calculateSolventRating(this.settings.compounds, this.settings.totalVolume, this.settings.solventPercentage);
-            this.settings.stability = calculateStability(this.settings.solventPercentage);
+            if (isNaN(this.settings.startDate.getTime())) {
+                this.settings.startDate = new Date();
+            }
+            // Chart settings
+            let no_start_animation = true;
+            let nmolNgDl = this.settings.nmolNgDl;
 
-            this.settings.remainingVolume = remainingVolume;
-            this.chart.data.datasets = [];
-            this.chart.data.labels = [];
-            let dataset = {
-                label: [],
+            let hours = 0.041666667;
+            let draw_point_time;
+            let time_interval = this.settings.durationWeeks * 7;
+            let multiple_esters = false;
+            if (time_interval < 7) draw_point_time = 0.001 * time_interval;
+            else if (time_interval <= 10) draw_point_time = 1 / 3 * hours;
+            else if (time_interval <= 21) draw_point_time = 2 / 3 * hours;
+            else if (time_interval <= 35) draw_point_time = 1 * hours;
+            else if (time_interval <= 45) draw_point_time = 0.75 * hours;
+            else if (time_interval <= 70) draw_point_time = 2 * hours;
+            else if (time_interval <= 90) draw_point_time = 3 * hours;
+            else if (time_interval <= 180) draw_point_time = 6 * hours;
+            else if (time_interval <= 360) draw_point_time = 12 * hours;
+            else draw_point_time = 0.001 * time_interval;
+
+
+            let ester = this.settings.esterData[this.settings.esterKey];
+            let dose = this.settings.dose;
+            let multi_dose = true;
+            let dose_interval_original = this.settings.doseFrequency / 7;
+            let dose_interval_units = 'weeks';
+            let dose_limit = (this.settings.durationWeeks * 7) / this.settings.doseFrequency;
+            dose_limit = dose_limit.toFixed(0);
+            if (typeof ester === "undefined") {
+                alert("Invalid ester");
+                return;
+            }
+            options.active_form = ester.active_form
+            options.molecular_weight = active_form_data[options.active_form].molecular_weight;
+
+            if (!(dose > 0 && dose <= 9999)) {
+                dose = 200;
+                this.settings.dose = 200;
+            }
+
+            if (!(dose_interval_original > 0 && dose_interval_original <= 999)) {
+                dose_interval_original = 7;
+                this.settings.doseFrequency = 7;
+            }
+            let dose_interval = dose_interval_original;
+
+            switch (dose_interval_units) {
+                case 'hours' :
+                    dose_interval /= 24;
+                    break;
+                case 'weeks' :
+                    dose_interval *= 7;
+                    break;
+                case 'months':
+                    dose_interval *= 30;
+                    break;
+            }
+
+            if (!(dose_limit >= 1 && dose_limit <= 9999)) {
+                dose_limit = 100;
+            }
+            let activeUnit = 'pg/mL';
+            if (ester['active_form'] === 'test') {
+                if (nmolNgDl === 'nmol') {
+                    activeUnit = 'nmol/L';
+                } else if (nmolNgDl === 'ngdl') {
+                    activeUnit = 'ng/dL';
+                }
+            } else {
+                if (nmolNgDl === 'nmol') {
+                    activeUnit = 'pmol/L';
+                } else if (nmolNgDl === 'ngdl') {
+                    activeUnit = 'pg/mL';
+                }
+            }
+
+            // I apologise for what I'm about to do here....
+            ester['params']['useBatemanOnly'] = this.settings.bateman;
+
+            draw_point_time = this.settings.drawPointTime; // override here other wise autistic math breaks.
+            let baseline = 0;
+            let curve_data = calc_curve(time_interval, draw_point_time, baseline, dose, dose_interval, multi_dose,
+                dose_limit, this.settings.steadyStateMode, ester['model'], ester['params'], this.settings.startDate, activeUnit, active_form_data[ester['active_form']].molecular_weight);
+
+            let esterModelMetaboliteDataset1 = {
+                label: 'DHT',
                 data: [],  // Initial data
-                backgroundColor: [],
+                yAxisID: 'y1',
+                xAxisID: 'x',
+                borderColor: 'pink',
+                hidden: false,
+                fill: false
+            }
+            let esterModelMetaboliteDataset2 = {
+                label: 'E2',
+                data: [],  // Initial data
+                yAxisID: 'y1',
+                xAxisID: 'x',
+                borderColor: 'grey',
+                hidden: false,
+                fill: false
+            }
+            let esterModelDataset = {
+                label: 'Test',
+                data: [],  // Initial data
+                yAxisID: 'y',
+                xAxisID: 'x',
+                borderColor: this?.getChartTheme?.().line || 'blue',
+                backgroundColor: this?.getChartTheme?.().fill || 'rgba(0,0,255,0.15)',
                 hidden: false,
                 fill: true
+            }
+            this.chart.data.labels = [];
+
+            for (let i = 0; i < curve_data.length; i++) {
+                this.chart.data.labels.push(new Date(curve_data[i].x));
+
+                if (ester['active_form'] === 'test') {
+                    // expect ngdl and returns ngdl units....
+                    let [E2, DHT] = calculateDHTE2(this.settings.age, curve_data[i].y, nmolNgDl);
+                    if (E2 < 0) E2 = 0;
+                    if (DHT < 0) DHT = 0;
+                    esterModelMetaboliteDataset1.data[i] = E2;
+                    esterModelMetaboliteDataset2.data[i] = DHT;
+                } else if ((ester['active_form'] === 'e2')) {
+                    esterModelDataset.yAxisID = 'y1'; // only mapping one E2 so show on right y-axis
+                }
+            }
+            let smallUnit = 'pg/mL';
+            let largeUnit = 'ng/dL';
+            // Labelling logic.
+            if (ester['active_form'] === 'test') {
+                if (nmolNgDl === 'nmol') {
+                    this.chart.options.scales.y.title.text = 'nmol';
+                    this.chart.options.scales.y1.title.text = 'pmol';
+                    largeUnit = 'nmol';
+                    smallUnit = 'pmol';
+                } else if (nmolNgDl === 'ngdl') {
+                    this.chart.options.scales.y.title.text = 'ng/dL';
+                    this.chart.options.scales.y1.title.text = 'pg/mL';
+
+                }
+                this.chart.options.scales.y1.grid.drawOnChartArea = false;
+            } else if (ester['active_form'] === 'nandrolone') {
+                if (nmolNgDl === 'nmol') {
+                    this.chart.options.scales.y.title.text = 'nmol';
+                    this.chart.options.scales.y1.title.text = 'pmol';
+                    largeUnit = 'nmol';
+                    smallUnit = 'pmol';
+                } else if (nmolNgDl === 'ngdl') {
+                    this.chart.options.scales.y.title.text = 'ng/dL';
+                    this.chart.options.scales.y1.title.text = 'pg/mL';
+                }
+                this.chart.options.scales.y.display = true;
+                this.chart.options.scales.y1.grid.drawOnChartArea = false;
+            } else {
+                // disable ngdl and nmol
+                if (nmolNgDl === 'nmol') {
+                    this.chart.options.scales.y.title.text = 'nmol';
+                    this.chart.options.scales.y1.title.text = 'pmol';
+                    largeUnit = 'nmol';
+                    smallUnit = 'pmol';
+                } else if (nmolNgDl === 'ngdl') {
+                    this.chart.options.scales.y.title.text = 'ng/dL';
+                    this.chart.options.scales.y1.title.text = 'pg/mL';
+                }
+                this.chart.options.scales.y.display = false;
+                this.chart.options.scales.y1.grid.drawOnChartArea = true;
+            }
+            if (nmolNgDl === 'nmol') {
+                this.chart.options.plugins.tooltip.callbacks.label = this.chart.options.plugins.tooltip.callbacks.label = function (context) {
+                    const {dataset, parsed} = context;
+                    const value = parsed.y;
+
+                    return `${dataset.label}: ${Math.floor(value)} ${dataset.unit || ''}`;
+                };
+                this.chart.options.plugins.tooltip.callbacks.label = function (context) {
+                    const {dataset, parsed, chart} = context;
+                    const value = parsed.y;
+
+                    const axisId = dataset.yAxisID;
+
+                    const axis = chart.options.scales[axisId];
+                    const unit = axis?.title?.text || '';
+
+                    return `${dataset.label}: ${Math.floor(value)} ${unit}`;
+                };
+
+            }
+            this.chart.options.scales.y.ticks.callback = function (value, index, values) {
+                return value + ` ${largeUnit}`;
             };
-            for (let i = 0; i < this.settings.compounds.length; i++) {
-                dataset.data.push(this.settings.compounds[i].mls);
-                this.chart.data.labels.push(`${this.settings.compounds[i].name}`);
-                dataset.backgroundColor.push(colours[i]);
+            this.chart.options.scales.y1.ticks.callback = function (value, index, values) {
+                return value + ` ${smallUnit}`;
+            };
+            esterModelDataset.data = curve_data;
+            esterModelDataset.label = ester['name'];
+            esterModelMetaboliteDataset1.label = `E2`;
+            esterModelMetaboliteDataset2.label = `DHT`;
+
+            // Window sizing logic
+            this.onResize();
+
+            this.chart.data.datasets = [];
+            this.chart.data.datasets.push(esterModelDataset);
+            if (ester['active_form'] === 'test') {
+                this.chart.data.datasets.push(esterModelMetaboliteDataset1);
+                this.chart.data.datasets.push(esterModelMetaboliteDataset2);
             }
-            if (remainingVolume > 0) {
-                dataset.label = "Remaining volume"
-                this.chart.data.labels.push("Remaining volume");
-                dataset.backgroundColor.push("red");
-                dataset.data.push(remainingVolume);
+            //console.log(this.chart.data); //debug
+            // Chart settings
+            // chart theme
+            const t = this.getChartTheme();
+            this.chart.options.scales.x.grid.color = t.grid;
+            this.chart.options.scales.y.grid.color = t.grid;
+            this.chart.options.scales.y1.grid.color = t.grid;
+
+            this.chart.options.scales.x.ticks.color = t.text;
+            this.chart.options.scales.y.ticks.color = t.text;
+            this.chart.options.scales.y1.ticks.color = t.text;
+
+
+            // custom mode?
+            if (this.settings.selectedPreset !== "custom") {
+                this.graphPresetData();
             }
-            this.chart.data.datasets[0] = dataset;
-            //console.log(this.chart.data);
-            //console.log(this.settings.compounds);
-            this.chart.options.plugins.legend.labels.color = (this.settings.theme === 'dark') ? '#ffffff' : '#000000';
-            this.chart.update();
-            this.solutionMeasurements = [];
-            this.anaylseBatch()
+            //averages
+            let dataset = this.chart.data.datasets[0];
+            let sum = 0;
+            for (let j = 0; j < dataset.data.length; j++) {
+                sum += dataset.data[j].y;
+            }
+            let avg = sum / dataset.data.length;
+            dataset.average = avg;
+            console.log(` sum: ${sum} avg: ${avg} dataset.data.length: ${dataset.data.length}`)
+
+            this.chart.options.plugins.annotation.annotations.avgLine = {
+                type: 'line',
+                scaleID: 'y',
+                value: avg,
+
+                borderColor: 'black',
+                borderDash: [6, 6],
+                borderWidth: 2,
+
+                label: {
+                    enabled: true,
+                    content: `Average: ${avg.toFixed(2)}`,
+                    position: 'end'
+                }
+            };
+            // Apply label to y1 axis
+            if (ester['active_form'] === 'e2') {
+                this.chart.options.plugins.annotation.annotations.avgLine.scaleID = 'y1';
+            } else {
+                this.chart.options.plugins.annotation.annotations.avgLine.scaleID = 'y';
+            }
+
+            // references ranges
+            if (this.settings.ranges === "male_test") {
+                let upperTestValue = 1000;
+                let lowerTestValue = 300;
+                if (nmolNgDl === 'nmol') {
+                    upperTestValue = 30;
+                    lowerTestValue = 10;
+                }
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.display = true;
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.value = upperTestValue;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.display = true;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.value = lowerTestValue;
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.scaleID = 'y';
+                this.chart.options.plugins.annotation.annotations.avgLineLower.scaleID = 'y';
+
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.borderColor = 'blue';
+                this.chart.options.plugins.annotation.annotations.avgLineLower.borderColor = 'blue';
+                this.chart.options.scales.y1.display = false;
+                this.chart.options.scales.y.display = true;
+
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.label.content = `Upper Test: ${upperTestValue.toFixed(2)}`;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.label.content = `Lower Test: ${lowerTestValue.toFixed(2)}`;
+                if (ester['active_form'] === 'test') {
+                    if (typeof this.chart.data.datasets[1] !== "undefined") {
+                        this.chart.data.datasets[1].hidden = true;
+                    }
+                    if (typeof this.chart.data.datasets[2] !== "undefined") {
+                        this.chart.data.datasets[2].hidden = true;
+                    }
+                } else if (ester['active_form'] === 'e2') {
+
+                }
+            } else if (this.settings.ranges === "female_test") {
+                let upperTestValue = 60;
+                let lowerTestValue = 8;
+                if (nmolNgDl === 'nmol') {
+                    upperTestValue = 2.5;
+                    lowerTestValue = 0.5;
+                }
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.display = true;
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.value = upperTestValue;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.display = true;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.value = lowerTestValue;
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.scaleID = 'y';
+                this.chart.options.plugins.annotation.annotations.avgLineLower.scaleID = 'y';
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.borderColor = 'blue';
+                this.chart.options.plugins.annotation.annotations.avgLineLower.borderColor = 'blue';
+
+                this.chart.options.scales.y1.display = false;
+                this.chart.options.scales.y.display = true;
+
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.label.content = `Upper Test: ${upperTestValue.toFixed(2)}`;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.label.content = `Lower Test: ${lowerTestValue.toFixed(2)}`;
+                if (ester['active_form'] === 'test') {
+                    if (typeof this.chart.data.datasets[1] !== "undefined") {
+                        this.chart.data.datasets[1].hidden = true;
+                    }
+                    if (typeof this.chart.data.datasets[2] !== "undefined") {
+                        this.chart.data.datasets[2].hidden = true;
+                    }
+                } else if (ester['active_form'] === 'e2') {
+
+                }
+            } else if (this.settings.ranges === "male_e2") {
+                let upperE2Value = 50;
+                let lower2EValue = 10;
+                if (nmolNgDl === 'nmol') {
+                    upperE2Value = 191;
+                    lower2EValue = 10;
+                }
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.display = true;
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.value = upperE2Value;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.display = true;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.value = lower2EValue;
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.scaleID = 'y1';
+                this.chart.options.plugins.annotation.annotations.avgLineLower.scaleID = 'y1';
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.label.content = `Upper E2: ${upperE2Value.toFixed(2)}`;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.label.content = `Lower E2: ${lower2EValue.toFixed(2)}`;
+
+                if (ester['active_form'] === 'test') {
+                    if (typeof this.chart.data.datasets[0] !== "undefined") {
+                        this.chart.data.datasets[0].hidden = true;
+                    }
+                    if (typeof this.chart.data.datasets[2] !== "undefined") {
+                        this.chart.data.datasets[2].hidden = true;
+                    }
+                } else if (ester['active_form'] === 'e2') {
+
+                }
+                this.chart.options.scales.y.display = false;
+                this.chart.options.scales.y1.display = true;
+            } else if (this.settings.ranges === "female_e2") {
+                let upperTestValue = 214;
+                let lowerTestValue = 20;
+                if (nmolNgDl === 'nmol') {
+                    upperTestValue = 786;
+                    lowerTestValue = 72;
+                }
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.display = true;
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.value = upperTestValue;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.display = true;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.value = lowerTestValue;
+
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.scaleID = 'y1';
+                this.chart.options.plugins.annotation.annotations.avgLineLower.scaleID = 'y1';
+
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.borderColor = 'pink';
+                this.chart.options.plugins.annotation.annotations.avgLineLower.borderColor = 'pink';
+
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.label.content = `Upper E2: ${upperTestValue.toFixed(2)}`;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.label.content = `Lower E2: ${lowerTestValue.toFixed(2)}`;
+
+                this.chart.options.scales.y.display = false;
+                this.chart.options.scales.y1.display = true;
+                if (ester['active_form'] === 'test') {
+                    if (typeof this.chart.data.datasets[0] !== "undefined") {
+                        this.chart.data.datasets[0].hidden = true;
+                    }
+                    if (typeof this.chart.data.datasets[2] !== "undefined") {
+                        this.chart.data.datasets[2].hidden = true;
+                    }
+                } else if (ester['active_form'] === 'e2') {
+
+                }
+            }
+
+            if (this.settings.ranges === "disable") {
+                this.chart.data.datasets[0].hidden = false;
+                this.chart.options.plugins.annotation.annotations.avgLineLower.display = false;
+                this.chart.options.plugins.annotation.annotations.avgLineUpper.display = false;
+
+                if (typeof this.chart.data.datasets[1] !== 'undefined') {
+                    this.chart.data.datasets[1].hidden = false;
+
+                }
+                if (typeof this.chart.data.datasets[2] !== 'undefined') {
+                    this.chart.data.datasets[2].hidden = false;
+
+                }
+                if (ester['active_form'] === 'test') {
+                    this.chart.options.scales.y.display = true;
+                    this.chart.options.scales.y1.display = true;
+                } else if (ester['active_form'] === 'e2') {
+                    this.chart.options.scales.y.display = false;
+
+                }
+            }
+            // enable or disable multidose and steady state mode
+            let doses = this.settings.durationWeeks*7 / (this.settings.doseFrequency)
+            if (doses > 1) {
+                this.settings.doses = doses.toFixed(0);
+            } else {
+                this.settings.doses =1;
+            }
+
+
+            this.chart.update();  // Redraw the chart
+
+
         },
     }
 }
