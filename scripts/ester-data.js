@@ -21,7 +21,7 @@ var active_form_data = {
         short_name: 'nandrolone',
         molecular_weight: 274.404, // g/mol
     },
-    dhea {
+    dhea: {
         name: 'DHEA',
         short_name: 'dhea',
         molecular_weight: 288, // g/mol
@@ -245,7 +245,7 @@ var ester_data = {
     short_name: 'DHEA BB/CO',
     dose_form: 'oil',
     trace_label_format: '<name> <form>',
-    active_form: 'nandrolone',  // or metabolite if modeling downstream
+    active_form: 'dhea',  // or metabolite if modeling downstream
     ester_shortcode: 'dhea_bb_co',  // free or minimally esterified
     model: 'bateman',
     params: {
