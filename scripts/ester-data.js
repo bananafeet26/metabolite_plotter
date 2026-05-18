@@ -21,6 +21,11 @@ var active_form_data = {
         short_name: 'nandrolone',
         molecular_weight: 274.404, // g/mol
     },
+    dhea {
+        name: 'DHEA',
+        short_name: 'dhea',
+        molecular_weight: 288, // g/mol
+    },
 };
 
 // Ester data
@@ -235,6 +240,23 @@ var ester_data = {
             useBatemanOnly: true,
         },
     },
+    dhea_bb_co: {
+    name: 'DHEA',
+    short_name: 'DHEA BB/CO',
+    dose_form: 'oil',
+    trace_label_format: '<name> <form>',
+    active_form: 'dhea',  // or metabolite if modeling downstream
+    ester_shortcode: 'dhea_bb_co',  // free or minimally esterified
+    model: 'bateman',
+    params: {
+        fit_dose: 100,  // example; adjust to your typical dose (mg). DHEA doses often 25–100+ mg
+        bioavailability: 0.75,  // Estimated; slightly lower than TP due to different lipophilicity/metabolism. IM steroids generally high but vehicle affects it
+        halflife: 4.5,  // days; apparent (absorption-limited). Longer than TP oil (~1 day) due to castor/BB viscosity. Shorter than TU (~20–30+ days) as DHEA is less lipophilic than undecanoate ester. Vegetable oil antipsychotics baseline ~7–10+ days; adjust upward for castor
+        cMax: 1200,  // ng/dL or equivalent per fit_dose; highly variable. Scale from your TP (26000) based on dose/potency. DHEA levels are lower/nM range typically
+        tMax: 3.0,  // days; delayed vs. TP due to slower vehicle release. Antipsychotic depots often peak 1–7+ days; castor/BB pushes later
+        useBatemanOnly: true,
+    },
+    }
 };
 
 // Persistent ester list, used for share links / URL params
