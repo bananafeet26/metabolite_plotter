@@ -255,8 +255,8 @@ var ester_data = {
         cMax: 1200,  // ng/dL or equivalent per fit_dose; highly variable. Scale from your TP (26000) based on dose/potency. DHEA levels are lower/nM range typically
         tMax: 3.0,  // days; delayed vs. TP due to slower vehicle release. Antipsychotic depots often peak 1–7+ days; castor/BB pushes later
         useBatemanOnly: true,
-    },
     }
+    },
 };
 
 // Persistent ester list, used for share links / URL params
