@@ -257,6 +257,23 @@ var ester_data = {
         useBatemanOnly: true,
     }
     },
+    dhea_dermal: {
+    name: 'DHEA Dermal Cream',
+    short_name: 'DHEA dermal',
+    dose_form: 'dermal',
+    trace_label_format: '<name>',
+    active_form: 'dhea',
+    ester_shortcode: 'dhea_dermal',
+    model: 'bateman',  // or your v3c if better suited
+    params: {
+        fit_dose: 25,                // example daily dose in mg; adjust to your cream strength
+        bioavailability: 0.33,       // ~33% relative to injection
+        halflife: 1.2,               // days (apparent; flatter profile)
+        cMax: 450,                   // ng/dL per fit_dose — much lower peaks than your injectable
+        tMax: 8.0,                   // hours (slower absorption)
+        useBatemanOnly: true,
+    }
+},
 };
 
 // Persistent ester list, used for share links / URL params
