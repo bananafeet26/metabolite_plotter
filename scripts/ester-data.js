@@ -26,6 +26,16 @@ var active_form_data = {
         short_name: 'dhea',
         molecular_weight: 288, // g/mol
     },
+    prog: {
+        name: 'Progesterone',
+        short_name: 'prog',
+        molecular_weight: 314, // g/mol
+    },
+    oxymetholone: {
+        name: 'Oxymetholone',
+        short_name: 'oxymetholone',
+        molecular_weight: 332.5, // g/mol
+    },
 };
 
 // Ester data
@@ -240,40 +250,96 @@ var ester_data = {
             useBatemanOnly: true,
         },
     },
+    // source: The absorption of oral micronized progesterone: the effect of
+    // food, dose proportionality, and comparison
+    // with intramuscular progesterone*t
     dhea_bb_co: {
-    name: 'DHEA',
-    short_name: 'DHEA BB/CO',
-    dose_form: 'oil',
-    trace_label_format: '<name> <form>',
-    active_form: 'dhea',  // or metabolite if modeling downstream
-    ester_shortcode: 'dhea_bb_co',  // free or minimally esterified
-    model: 'bateman',
-    params: {
-        fit_dose: 100,  // example; adjust to your typical dose (mg). DHEA doses often 25–100+ mg
-        bioavailability: 0.75,  // Estimated; slightly lower than TP due to different lipophilicity/metabolism. IM steroids generally high but vehicle affects it
-        halflife: 4.5,  // days; apparent (absorption-limited). Longer than TP oil (~1 day) due to castor/BB viscosity. Shorter than TU (~20–30+ days) as DHEA is less lipophilic than undecanoate ester. Vegetable oil antipsychotics baseline ~7–10+ days; adjust upward for castor
-        cMax: 1200,  // ng/dL or equivalent per fit_dose; highly variable. Scale from your TP (26000) based on dose/potency. DHEA levels are lower/nM range typically
-        tMax: 3.0,  // days; delayed vs. TP due to slower vehicle release. Antipsychotic depots often peak 1–7+ days; castor/BB pushes later
-        useBatemanOnly: true,
-    }
+        name: 'DHEA',
+        short_name: 'DHEA BB/CO',
+        dose_form: 'oil',
+        active_form: 'dhea',
+        model: 'bateman',
+        ester_shortcode: 'dhea_bb_co',
+
+        params: {
+            fit_dose: 100,          // mg typical IM dose reference
+            // true systemic elimination (fast steroid)
+            halflife: 0.929166667,         // days (~4 hours)
+            // castor oil depot release
+            tMax: 0.279166667,              // days (peak ~18–30h)
+            bioavailability: 0.98,
+            cMax: 11300,
+            useBatemanOnly: true
+        }
+    },
+    test_base_bb_co: {
+        name: 'Testosterone base',
+        short_name: 'TestBase',
+        dose_form: 'oil',
+        trace_label_format: '<name>',
+        active_form: 'test',
+        model: 'bateman',
+        ester_shortcode: 'test_base_bb_co',
+        params: {
+            fit_dose: 100,
+            bioavailability: 1.0,      // No ester weight deduction
+            halflife: 18/24,           // Approx 18 hours absorption half-life
+            tMax: 5.5/24,               // Approx 5.5 hours to peak
+            useBatemanOnly: true,
+            cMax: 10200 *10,
+        },
+    },
+    prog_base_bb_co: {
+        name: 'Progesterone base',
+        short_name: 'ProgBase',
+        dose_form: 'oil',
+        trace_label_format: '<name>',
+        active_form: 'prog',
+        model: 'bateman',
+        ester_shortcode: 'prog_base_bb_co',
+        params: {
+            fit_dose: 100,
+            bioavailability: 1.0,      // No ester weight deduction
+            halflife: 22.3/24,           // Based on Prontogest absorption half-life (~22.3 hours)
+            tMax: 6.67/24,               // Based on Prontogest peak time (~6.67 hours)
+            useBatemanOnly: true,
+            cMax: 11200,              // Scaled linearly from 112.9 ng/mL at 50mg to 100mg dose
+        },
+    },
+    anadrol_base_bb_co: {
+        name: 'Oxymetholone base',
+        short_name: 'AnaBase',
+        dose_form: 'oil',
+        trace_label_format: '<name>',
+        active_form: 'oxymetholone',
+        model: 'bateman',
+        ester_shortcode: 'anadrol_base_bb_co',
+        params: {
+            fit_dose: 100,
+            bioavailability: 1.0,
+            halflife: 22.3/24 * (1/0.268),           // Scaled up for higher lipophilicity (logP 4.401)
+            tMax: 6.67/24 * (1/0.268), // Scaled proportionally to the release rate change
+            useBatemanOnly: true,
+            cMax: 8800,               // Normalized for slower release and similar Vd
+        },
     },
     dhea_dermal: {
-    name: 'DHEA Dermal Cream',
-    short_name: 'DHEA dermal',
-    dose_form: 'dermal',
-    trace_label_format: '<name>',
-    active_form: 'dhea',
-    ester_shortcode: 'dhea_dermal',
-    model: 'bateman',  // or your v3c if better suited
-    params: {
-        fit_dose: 25,                // example daily dose in mg; adjust to your cream strength
-        bioavailability: 0.33,       // ~33% relative to injection
-        halflife: 1.2,               // days (apparent; flatter profile)
-        cMax: 450,                   // ng/dL per fit_dose — much lower peaks than your injectable
-        tMax: 8.0,                   // hours (slower absorption)
-        useBatemanOnly: true,
-    }
-},
+        name: 'DHEA Dermal Cream',
+        short_name: 'DHEA dermal',
+        dose_form: 'dermal',
+        trace_label_format: '<name>',
+        active_form: 'dhea',
+        ester_shortcode: 'dhea_dermal',
+        model: 'bateman',  // or your v3c if better suited
+        params: {
+            fit_dose: 25,                // example daily dose in mg; adjust to your cream strength
+            bioavailability: 0.33,       // ~33% relative to injection
+            halflife: 1.2,               // days (apparent; flatter profile)
+            cMax: 450,                   // ng/dL per fit_dose — much lower peaks than your injectable
+            tMax: 8.0,                   // hours (slower absorption)
+            useBatemanOnly: true,
+        }
+    },
 };
 
 // Persistent ester list, used for share links / URL params

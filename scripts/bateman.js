@@ -112,6 +112,12 @@ function calculateTestosteroneConcentrationBateman(dose, doseFrequency, startDat
 function calculateDHTE2 (age, totalTestosterone, nmolNgDl) {
     if (nmolNgDl === 'nmol') {
         totalTestosterone = convert_concentration_units(totalTestosterone, 'nmol/L', 'ng/dL', active_form_data.test.molecular_weight);
+        console.log(`Total testosterone: ${totalTestosterone} ng/dL`);
+        console.log(`Age: ${age}`);
+    } else {
+        //totalTestosterone = convert_concentration_units(totalTestosterone,  'ng/dL','nmol/L', active_form_data.test.molecular_weight);
+        console.log(`Total testosterone: ${totalTestosterone} nmol/L`);
+        console.log(`Age: ${age}`);
     }
     // Constants for YOUNG MEN (ages 19-35)
     let A_e2 = 100.7;  // Max E2 capacity
@@ -129,5 +135,9 @@ function calculateDHTE2 (age, totalTestosterone, nmolNgDl) {
     }
     let estradiol = (A_e2 * totalTestosterone) / (Km_e2 + totalTestosterone);
     let dht = (A_dht * totalTestosterone) / (Km_dht + totalTestosterone);
+    if (nmolNgDl === 'nmol') {
+        dht = convert_concentration_units(dht,  'pg/mL','pmol/L', active_form_data.test.molecular_weight);
+        estradiol = convert_concentration_units(estradiol,  'pg/mL','pmol/L', active_form_data.test.molecular_weight);
+    }
     return [estradiol, dht];
 }

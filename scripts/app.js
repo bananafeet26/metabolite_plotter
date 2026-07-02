@@ -500,11 +500,11 @@ function metaboliteApp() {
 
                 }
             } else if (this.settings.ranges === "male_e2") {
-                let upperE2Value = 50;
+                let upperE2Value = 40;
                 let lower2EValue = 10;
                 if (nmolNgDl === 'nmol') {
-                    upperE2Value = 191;
-                    lower2EValue = 10;
+                    upperE2Value = 146;
+                    lower2EValue = 36;
                 }
                 this.chart.options.plugins.annotation.annotations.avgLineUpper.display = true;
                 this.chart.options.plugins.annotation.annotations.avgLineUpper.value = upperE2Value;
